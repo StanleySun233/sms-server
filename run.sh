@@ -22,8 +22,7 @@ fi
 echo -e "${GREEN}Loading configuration from .env file...${NC}"
 export $(grep -v '^#' .env | xargs)
 
-# Set default values if not provided
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+# Set default values if not provided (MYSQL_ROOT_PASSWORD 留空表示使用已有 MySQL)
 MYSQL_DATABASE=${MYSQL_DATABASE:-sms_server}
 MYSQL_USER=${MYSQL_USER:-sms_user}
 MYSQL_PASSWORD=${MYSQL_PASSWORD:-sms_password}
@@ -60,30 +59,37 @@ else
     echo -e "${GREEN}Docker network $NETWORK_NAME already exists${NC}"
 fi
 
-# Start MySQL
-echo ""
-echo -e "${YELLOW}[1/5] Starting MySQL...${NC}"
-if is_running "sms-mysql"; then
-    echo -e "${GREEN}MySQL is already running${NC}"
-elif container_exists "sms-mysql"; then
-    echo "Starting existing MySQL container..."
-    $DOCKER start sms-mysql
-else
-    echo "Creating and starting new MySQL container..."
-    $DOCKER run -d \
-        --name sms-mysql \
-        --network $NETWORK_NAME \
-        -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
-        -e MYSQL_DATABASE="$MYSQL_DATABASE" \
-        -e MYSQL_USER="$MYSQL_USER" \
-        -e MYSQL_PASSWORD="$MYSQL_PASSWORD" \
-        -p $MYSQL_PORT:3306 \
-        -v sms-mysql-data:/var/lib/mysql \
-        --restart unless-stopped \
-        mysql:8.0
+# Start MySQL (only when MYSQL_ROOT_PASSWORD is set; empty = use existing MySQL)
+if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
+    echo ""
+    echo -e "${YELLOW}[1/5] Starting MySQL...${NC}"
+    if is_running "sms-mysql"; then
+        echo -e "${GREEN}MySQL is already running${NC}"
+    elif container_exists "sms-mysql"; then
+        echo "Starting existing MySQL container..."
+        $DOCKER start sms-mysql
+    else
+        echo "Creating and starting new MySQL container..."
+        $DOCKER run -d \
+            --name sms-mysql \
+            --network $NETWORK_NAME \
+            -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+            -e MYSQL_DATABASE="$MYSQL_DATABASE" \
+            -e MYSQL_USER="$MYSQL_USER" \
+            -e MYSQL_PASSWORD="$MYSQL_PASSWORD" \
+            -p $MYSQL_PORT:3306 \
+            -v sms-mysql-data:/var/lib/mysql \
+            --restart unless-stopped \
+            mysql:8.0
 
-    echo -e "${YELLOW}Waiting for MySQL to be ready...${NC}"
-    sleep 15
+        echo -e "${YELLOW}Waiting for MySQL to be ready...${NC}"
+        sleep 15
+    fi
+    MYSQL_DS_URL="jdbc:mysql://sms-mysql:3306/$MYSQL_DATABASE?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+else
+    echo ""
+    echo -e "${GREEN}[1/5] Using existing MySQL at $MYSQL_HOST:$MYSQL_PORT${NC}"
+    MYSQL_DS_URL="jdbc:mysql://$MYSQL_HOST:$MYSQL_PORT/$MYSQL_DATABASE?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
 fi
 
 # Start Redis
@@ -161,7 +167,7 @@ $DOCKER run -d \
     --network $NETWORK_NAME \
     -p $BACKEND_PORT:8080 \
     -e SPRING_PROFILES_ACTIVE="$SPRING_PROFILES_ACTIVE" \
-    -e SPRING_DATASOURCE_URL="jdbc:mysql://sms-mysql:3306/$MYSQL_DATABASE?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true" \
+    -e SPRING_DATASOURCE_URL="$MYSQL_DS_URL" \
     -e SPRING_DATASOURCE_USERNAME="$MYSQL_USER" \
     -e SPRING_DATASOURCE_PASSWORD="$MYSQL_PASSWORD" \
     -e SPRING_DATA_REDIS_HOST="$REDIS_HOST" \
@@ -226,7 +232,7 @@ echo -e "${GREEN}Access URLs:${NC}"
 echo "  - Frontend: http://localhost:$FRONTEND_PORT"
 echo "  - API Swagger UI: http://localhost:$BACKEND_PORT/api/swagger-ui.html"
 echo "  - API Health Check: http://localhost:$BACKEND_PORT/api/actuator/health"
-echo "  - MySQL: localhost:$MYSQL_PORT"
+[ -n "$MYSQL_ROOT_PASSWORD" ] && echo "  - MySQL: localhost:$MYSQL_PORT" || echo "  - MySQL: $MYSQL_HOST:$MYSQL_PORT (external)"
 echo "  - Redis: localhost:$REDIS_PORT"
 echo ""
 echo -e "${YELLOW}View logs:${NC}"
