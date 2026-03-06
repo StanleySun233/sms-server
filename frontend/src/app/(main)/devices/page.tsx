@@ -26,13 +26,6 @@ export default function DevicesPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const handleDelete = async (id: number) => {
-    deviceApi.delete(id).then(() => {
-      ElMessage.success(t('deleteSuccess'));
-      fetchDevices();
-    }).catch((error: any) => ElMessage.error(error.message || t('deleteFailed')));
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -82,7 +75,7 @@ export default function DevicesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {devices.map((device) => (
-            <DeviceCard key={device.id} device={device} onDelete={handleDelete} />
+            <DeviceCard key={device.id} device={device} />
           ))}
         </div>
       )}

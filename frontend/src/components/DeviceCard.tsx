@@ -7,10 +7,9 @@ import { useRouter } from 'next/navigation';
 
 interface DeviceCardProps {
   device: Device;
-  onDelete?: (id: number) => void;
 }
 
-export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
+export default function DeviceCard({ device }: DeviceCardProps) {
   const t = useTranslations('devices');
   const router = useRouter();
 
@@ -49,38 +48,6 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/devices/${device.id}/edit`);
-          }}
-          className="px-4 py-2 rounded-lg transition-all duration-200"
-          style={{
-            backgroundColor: 'rgba(194, 144, 94, 0.3)',
-            color: '#fff',
-          }}
-        >
-          {t('edit')}
-        </button>
-        {onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm(t('confirmDelete'))) {
-                onDelete(device.id);
-              }
-            }}
-            className="px-4 py-2 rounded-lg transition-all duration-200"
-            style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.3)',
-              color: '#fff',
-            }}
-          >
-            {t('delete')}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
