@@ -192,7 +192,7 @@ $DOCKER run -d \
     -p $FRONTEND_PORT:3000 \
     -e NODE_ENV="$NODE_ENV" \
     -e NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
-    -e BACKEND_INTERNAL_URL="http://sms-backend:8080/api" \
+    -e BACKEND_URL="http://sms-backend:8080" \
     --restart unless-stopped \
     sms-frontend:latest
 
