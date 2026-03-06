@@ -1,8 +1,17 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
+// Get API URL from runtime config (window object) or fallback to env
+const getApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    // @ts-ignore - runtime config injected via publicRuntimeConfig
+    return window.__RUNTIME_CONFIG__?.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
+};
+
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
+  baseURL: getApiUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
