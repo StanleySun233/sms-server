@@ -17,30 +17,18 @@ export default function CallHistoryPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchCalls = async () => {
-    try {
-      const response = await missedCallApi.getCallHistory(deviceId, phone);
-      setCalls(response.data.data || []);
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to load call history');
-    } finally {
-      setLoading(false);
-    }
+    const response = await missedCallApi.getCallHistory(deviceId, phone);
+    setCalls(response.data.data || []);
   };
 
   useEffect(() => {
-    fetchCalls();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchCalls().catch((error: any) => ElMessage.error(error.message || 'Failed to load call history')).finally(() => setLoading(false));
   }, [deviceId, phone]);
 
   const handleMarkAsRead = async (callId: number) => {
-    try {
-      await missedCallApi.markAsRead([callId]);
-      ElMessage.success('Call marked as read');
-      // Refresh the call list
-      fetchCalls();
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to mark call as read');
-    }
+    await missedCallApi.markAsRead([callId]);
+    ElMessage.success('Call marked as read');
+    fetchCalls();
   };
 
   const handleMarkAllAsRead = async () => {
@@ -49,15 +37,9 @@ export default function CallHistoryPage() {
       ElMessage.info('All calls are already marked as read');
       return;
     }
-
-    try {
-      await missedCallApi.markAsRead(unreadCallIds);
-      ElMessage.success(`Marked ${unreadCallIds.length} calls as read`);
-      // Refresh the call list
-      fetchCalls();
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to mark calls as read');
-    }
+    await missedCallApi.markAsRead(unreadCallIds);
+    ElMessage.success(`Marked ${unreadCallIds.length} calls as read`);
+    fetchCalls();
   };
 
   if (loading) {
@@ -75,7 +57,7 @@ export default function CallHistoryPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Call History</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">来电记录</h1>
             <p className="text-white/70 text-lg">{phone}</p>
           </div>
           <button
@@ -86,7 +68,7 @@ export default function CallHistoryPage() {
               color: '#fff',
             }}
           >
-            Back to Missed Calls
+            返回未接来电
           </button>
         </div>
 

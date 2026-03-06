@@ -17,24 +17,14 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchConversations();
-
-    // Auto-refresh every 10 seconds
-    const interval = setInterval(fetchConversations, 10000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId]);
-
-  const fetchConversations = async () => {
-    try {
+    const load = async () => {
       const response = await smsApi.getConversations(deviceId);
       setConversations(response.data.data || []);
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to load conversations');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    load().catch((error: any) => ElMessage.error(error.message || 'Failed to load conversations')).finally(() => setLoading(false));
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, [deviceId]);
 
   const handleSelectConversation = (phone: string) => {
     router.push(`/devices/${deviceId}/messages/${encodeURIComponent(phone)}`);
@@ -52,7 +42,7 @@ export default function MessagesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Messages</h1>
+          <h1 className="text-4xl font-bold text-white">短信</h1>
           <button
             onClick={() => router.push(`/devices/${deviceId}`)}
             className="px-4 py-2 rounded-lg transition-all duration-200"
@@ -61,7 +51,7 @@ export default function MessagesPage() {
               color: '#fff',
             }}
           >
-            Back to Device
+            返回设备
           </button>
         </div>
 

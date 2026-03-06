@@ -32,8 +32,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem(TOKEN_KEY);
-      window.location.href = '/login';
+      const isAuthCheck = error.config?.url?.includes('/auth/me');
+      const isPublicPage = /^\/(login|register)$/.test(window.location.pathname);
+      if (!isAuthCheck && !isPublicPage) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/login';
+      }
     }
     const errorMessage =
       (error.response?.data as any)?.message ||

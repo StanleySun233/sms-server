@@ -84,6 +84,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Boot DevTools (hot restart in dev) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- SpringDoc OpenAPI (Swagger) -->
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -140,7 +148,13 @@
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
+                        <exclude>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-devtools</artifactId>
+                        </exclude>
                     </excludes>
+                    <fork>true</fork>
+                    <addResources>true</addResources>
                 </configuration>
             </plugin>
         </plugins>

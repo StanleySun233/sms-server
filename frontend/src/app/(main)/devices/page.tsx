@@ -13,28 +13,21 @@ export default function DevicesPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchDevices = async () => {
-    try {
-      const response = await deviceApi.list();
-      setDevices(response.data);
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to load devices');
-    } finally {
-      setLoading(false);
-    }
+    const response = await deviceApi.list();
+    setDevices(response.data);
   };
 
   useEffect(() => {
-    fetchDevices();
+    fetchDevices().catch((error: any) => {
+      ElMessage.error(error.message || 'Failed to load devices');
+    }).finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id: number) => {
-    try {
-      await deviceApi.delete(id);
+    deviceApi.delete(id).then(() => {
       ElMessage.success('Device deleted successfully');
       fetchDevices();
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to delete device');
-    }
+    }).catch((error: any) => ElMessage.error(error.message || 'Failed to delete'));
   };
 
   if (loading) {
@@ -48,7 +41,7 @@ export default function DevicesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-white">My Devices</h1>
+        <h1 className="text-4xl font-bold text-white">设备列表</h1>
         <button
           onClick={() => router.push('/devices/new')}
           className="px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105"
@@ -57,7 +50,7 @@ export default function DevicesPage() {
             color: '#fff',
           }}
         >
-          Add Device
+          添加设备
         </button>
       </div>
 
@@ -70,8 +63,8 @@ export default function DevicesPage() {
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
-          <h2 className="text-2xl font-semibold text-white mb-4">No Devices Yet</h2>
-          <p className="text-white/70 mb-6">Get started by adding your first device</p>
+          <h2 className="text-2xl font-semibold text-white mb-4">暂无设备</h2>
+          <p className="text-white/70 mb-6">添加你的第一个设备开始使用</p>
           <button
             onClick={() => router.push('/devices/new')}
             className="px-6 py-3 rounded-lg font-medium transition-all duration-200"
@@ -80,7 +73,7 @@ export default function DevicesPage() {
               color: '#fff',
             }}
           >
-            Add Your First Device
+            添加设备
           </button>
         </div>
       ) : (

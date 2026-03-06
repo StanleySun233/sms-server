@@ -17,22 +17,15 @@ export default function NewDevicePage() {
     e.preventDefault();
     setError('');
     setSuccess('');
-
     if (!alias.trim()) {
       setError('Please enter a device name');
       return;
     }
-
     setLoading(true);
-    try {
-      const response = await deviceApi.create({ alias });
+    deviceApi.create({ alias }).then((response) => {
       setCreatedDevice(response.data);
       setSuccess('Device created successfully!');
-    } catch (error: any) {
-      setError(error.message || 'Failed to create device');
-    } finally {
-      setLoading(false);
-    }
+    }).catch((err: any) => setError(err.message || 'Failed to create device')).finally(() => setLoading(false));
   };
 
   const webhookUrl = createdDevice
@@ -50,11 +43,11 @@ export default function NewDevicePage() {
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
-          <h1 className="text-3xl font-bold text-white mb-6">Device Created Successfully!</h1>
+          <h1 className="text-3xl font-bold text-white mb-6">设备创建成功</h1>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-white/70 mb-2">Device Name</label>
+              <label className="block text-white/70 mb-2">设备名称</label>
               <div className="text-white text-lg font-medium">{createdDevice.alias}</div>
             </div>
 
@@ -89,7 +82,7 @@ export default function NewDevicePage() {
                   color: '#fff',
                 }}
               >
-                Go to Devices
+                返回设备列表
               </button>
               <button
                 onClick={() => router.push(`/devices/${createdDevice.id}`)}
@@ -99,7 +92,7 @@ export default function NewDevicePage() {
                   color: '#fff',
                 }}
               >
-                View Device
+                查看设备
               </button>
             </div>
           </div>
@@ -118,7 +111,7 @@ export default function NewDevicePage() {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
-        <h1 className="text-3xl font-bold text-white mb-6">Add New Device</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">新建设备</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
@@ -134,7 +127,7 @@ export default function NewDevicePage() {
           )}
 
           <div>
-            <label className="block text-white/90 mb-2">Device Name</label>
+            <label className="block text-white/90 mb-2">设备名称</label>
             <input
               type="text"
               value={alias}
@@ -169,7 +162,7 @@ export default function NewDevicePage() {
                 color: '#fff',
               }}
             >
-              Cancel
+              取消
             </button>
           </div>
         </form>

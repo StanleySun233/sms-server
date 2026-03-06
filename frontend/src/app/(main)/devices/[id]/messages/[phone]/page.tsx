@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
@@ -28,28 +28,55 @@ export default function ConversationPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const unreadMessagesRef = useRef<Set<number>>(new Set());
 
-  // Fetch conversations for sidebar
+  const fetchConversations = async () => {
+    const response = await smsApi.getConversations(deviceId);
+    setConversations(response.data.data || []);
+  };
+
+  const fetchMessages = async (resetPage: boolean = false) => {
+    const currentPage = resetPage ? 1 : page;
+    const response = await smsApi.getMessages(deviceId, phone, currentPage, 50);
+    const data = response.data.data;
+    if (data && data.records) {
+      if (resetPage) {
+        setMessages(data.records.reverse());
+      } else {
+        const newMsgs = data.records.filter(
+          (msg: SmsMessage) => !messages.find((m) => m.id === msg.id)
+        );
+        if (newMsgs.length > 0) {
+          setMessages([...messages, ...newMsgs.reverse()]);
+        }
+      }
+      setHasMore(!data.last);
+    }
+    setLoading(false);
+  };
+
+  const markMessagesAsRead = async (messageIds: number[]) => {
+    await smsApi.markAsRead(messageIds);
+    setMessages((prev) =>
+      prev.map((msg) =>
+        messageIds.includes(msg.id) ? { ...msg, readAt: new Date().toISOString() } : msg
+      )
+    );
+    fetchConversations();
+  };
+
   useEffect(() => {
     fetchConversations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId]);
 
-  // Fetch messages
   useEffect(() => {
     fetchMessages(true);
-
-    // Auto-refresh every 5 seconds
     const interval = setInterval(() => fetchMessages(false), 5000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId, phone]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Intersection Observer for auto-read
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -57,7 +84,6 @@ export default function ConversationPage() {
           if (entry.isIntersecting) {
             const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
             const direction = entry.target.getAttribute('data-direction');
-
             if (messageId && direction === 'received') {
               unreadMessagesRef.current.add(messageId);
             }
@@ -66,15 +92,11 @@ export default function ConversationPage() {
       },
       { threshold: 0.5 }
     );
-
-    // Observe all message bubbles
     const messageBubbles = document.querySelectorAll('[data-message-id]');
     messageBubbles.forEach((bubble) => observer.observe(bubble));
-
     return () => observer.disconnect();
   }, [messages]);
 
-  // Batch mark as read every 2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (unreadMessagesRef.current.size > 0) {
@@ -83,88 +105,18 @@ export default function ConversationPage() {
         unreadMessagesRef.current.clear();
       }
     }, 2000);
-
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const fetchConversations = async () => {
-    try {
-      const response = await smsApi.getConversations(deviceId);
-      setConversations(response.data.data || []);
-    } catch (error: any) {
-      console.error('Failed to load conversations', error);
-    }
-  };
-
-  const fetchMessages = async (resetPage: boolean = false) => {
-    try {
-      const currentPage = resetPage ? 1 : page;
-      const response = await smsApi.getMessages(deviceId, phone, currentPage, 50);
-      const data = response.data.data;
-
-      if (data && data.records) {
-        if (resetPage) {
-          setMessages(data.records.reverse());
-        } else {
-          // Check if there are new messages
-          const newMsgs = data.records.filter(
-            (msg: SmsMessage) => !messages.find((m) => m.id === msg.id)
-          );
-          if (newMsgs.length > 0) {
-            setMessages([...messages, ...newMsgs.reverse()]);
-          }
-        }
-        setHasMore(!data.last);
-      }
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to load messages');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markMessagesAsRead = async (messageIds: number[]) => {
-    try {
-      await smsApi.markAsRead(messageIds);
-      // Update local state
-      setMessages((prev) =>
-        prev.map((msg) =>
-          messageIds.includes(msg.id) ? { ...msg, readAt: new Date().toISOString() } : msg
-        )
-      );
-      // Refresh conversations to update unread count
-      fetchConversations();
-    } catch (error: any) {
-      console.error('Failed to mark messages as read', error);
-    }
-  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || sending) return;
-
     setSending(true);
-    try {
-      await smsApi.sendMessage(deviceId, {
-        phone,
-        content: newMessage.trim(),
-      });
-
-      setNewMessage('');
-      ElMessage.success('Message sent');
-
-      // Refresh messages after a short delay
-      setTimeout(() => fetchMessages(false), 1000);
-    } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to send message');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
+    setNewMessage('');
+    ElMessage.success('Message sent');
+    setTimeout(() => fetchMessages(false), 1000);
+    setSending(false);
   };
 
   if (loading) {
@@ -179,7 +131,6 @@ export default function ConversationPage() {
     <div className="h-screen flex flex-col">
       <div className="container mx-auto px-4 py-4 flex-1 flex flex-col overflow-hidden">
         <div className="flex gap-4 h-full">
-          {/* Left Sidebar - Conversation List */}
           <div
             className="w-80 rounded-2xl shadow-xl overflow-hidden"
             style={{
@@ -193,7 +144,7 @@ export default function ConversationPage() {
                 onClick={() => router.push(`/devices/${deviceId}`)}
                 className="text-white/70 hover:text-white transition-colors"
               >
-                ← Back to Device
+                ← 返回设备
               </button>
             </div>
             <ConversationList
@@ -207,7 +158,6 @@ export default function ConversationPage() {
             />
           </div>
 
-          {/* Right Pane - Chat Interface */}
           <div
             className="flex-1 rounded-2xl shadow-xl flex flex-col overflow-hidden"
             style={{
@@ -216,7 +166,6 @@ export default function ConversationPage() {
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}
           >
-            {/* Header */}
             <div
               className="p-4 flex justify-between items-center"
               style={{
@@ -227,13 +176,10 @@ export default function ConversationPage() {
               <ExportButton deviceId={deviceId} phone={phone} />
             </div>
 
-            {/* Messages Container */}
             <div
               ref={messagesContainerRef}
               className="flex-1 overflow-y-auto p-4 space-y-2"
-              style={{
-                scrollBehavior: 'smooth',
-              }}
+              style={{ scrollBehavior: 'smooth' }}
             >
               {messages.length === 0 ? (
                 <div className="text-white/50 text-center mt-8">No messages yet</div>
@@ -251,13 +197,10 @@ export default function ConversationPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Box */}
             <form
               onSubmit={handleSendMessage}
               className="p-4"
-              style={{
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
+              style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
             >
               <div className="flex gap-2">
                 <input

@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || 'http://sms-backend:8080';
+    const backendUrl = process.env.BACKEND_URL || 'http://45.207.211.30';
     return [
       {
         source: '/api/:path*',

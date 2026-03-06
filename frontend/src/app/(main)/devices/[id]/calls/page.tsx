@@ -15,18 +15,11 @@ export default function MissedCallsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCalls = async () => {
-      try {
-        const response = await missedCallApi.getMissedCalls(deviceId);
-        setCalls(response.data.data || []);
-      } catch (error: any) {
-        ElMessage.error(error.message || 'Failed to load missed calls');
-      } finally {
-        setLoading(false);
-      }
+    const load = async () => {
+      const response = await missedCallApi.getMissedCalls(deviceId);
+      setCalls(response.data.data || []);
     };
-
-    fetchCalls();
+    load().catch((error: any) => ElMessage.error(error.message || 'Failed to load missed calls')).finally(() => setLoading(false));
   }, [deviceId]);
 
   const formatTimestamp = (timestamp: string) => {
@@ -69,7 +62,7 @@ export default function MissedCallsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Missed Calls</h1>
+          <h1 className="text-4xl font-bold text-white">未接来电</h1>
           <button
             onClick={() => router.push(`/devices/${deviceId}`)}
             className="px-4 py-2 rounded-lg transition-all duration-200"
@@ -78,7 +71,7 @@ export default function MissedCallsPage() {
               color: '#fff',
             }}
           >
-            Back to Device
+            返回设备
           </button>
         </div>
 
@@ -91,7 +84,7 @@ export default function MissedCallsPage() {
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}
           >
-            <p className="text-white/70 text-lg">No missed calls</p>
+            <p className="text-white/70 text-lg">暂无未接来电</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -108,7 +101,6 @@ export default function MissedCallsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Phone icon */}
                     <div
                       className="w-12 h-12 rounded-full flex items-center justify-center"
                       style={{
@@ -137,7 +129,6 @@ export default function MissedCallsPage() {
                     </div>
                   </div>
 
-                  {/* Count badge */}
                   <div
                     className="px-4 py-2 rounded-full font-medium"
                     style={{

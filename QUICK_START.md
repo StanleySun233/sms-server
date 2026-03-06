@@ -97,37 +97,79 @@ docker-compose logs -f
 
 ---
 
-## Windows 下不使用 Docker 时如何识别 .env
+## Windows 下不使用 Docker 时如何导入 .env 参数
 
-使用 Docker 时，`docker-compose` 会自动读取项目根目录的 `.env` 并把变量注入容器。**不用 Docker 时，后端和前端都不会自动读取项目根目录的 `.env`**，需要按下面方式处理。
+使用 Docker 时，`docker-compose` 会读项目根目录的 `.env` 并注入容器。**不用 Docker、直接 `npm run dev` 和 `mvn spring-boot:run` 时**，按下面方式导入这些参数。
 
 ### 后端（Spring Boot）
 
-- Spring Boot **不会**自动加载 `.env` 文件，只读取**系统环境变量**。
-- `application.yml` 中的 `JWT_SECRET`、`SPRING_PROFILE` 等来自环境变量。
-- 在启动后端前，在终端里设置环境变量（PowerShell 示例）：
-  ```powershell
-  $env:JWT_SECRET = "你的至少32字符的JWT密钥"
-  $env:SPRING_PROFILES_ACTIVE = "dev"
-  ```
-  或在“系统属性 → 高级 → 环境变量”里永久添加。
-- `application-dev.yml` 里数据库、Redis 的地址/账号密码目前是写死的（localhost、smsadmin/smspassword），若本地 MySQL/Redis 与此一致即可，无需再从 .env 读。
+Spring Boot 不读 `.env` 文件，只读**当前进程的环境变量**。两种方式任选其一：
+
+**方式一：用脚本一次性注入再启动（推荐）**
+
+在项目根目录执行：
+
+```cmd
+run-backend-dev.bat
+```
+
+脚本会设置 `MYSQL_*`、`REDIS_*`、`BACKEND_PORT`、`JWT_SECRET`、`SPRING_PROFILE` 等，再执行 `mvn -f backend\pom.xml spring-boot:run`。需要改密码或端口时，直接编辑 `run-backend-dev.bat` 里的 `set` 行。
+
+**方式二：在终端里先 set 再启动**
+
+```cmd
+set MYSQL_USER=smsadmin
+set MYSQL_PASSWORD=Password@sms
+set MYSQL_PORT=3306
+set MYSQL_DATABASE=sms_server
+set REDIS_PORT=6379
+set REDIS_PASSWORD=Password@redis
+set BACKEND_PORT=8080
+set JWT_SECRET=your_jwt_secret_key_here_minimum_32_characters_recommended
+set SPRING_PROFILE=dev
+cd backend
+mvn spring-boot:run
+```
+
+`application-dev.yml` 已支持上述环境变量（带默认值），未设置的项会使用默认值。
 
 ### 前端（Next.js）
 
-- Next.js 只会加载**当前工作目录**下的 `.env`（如 `.env`、`.env.local`、`.env.development`）。
-- 在 `frontend/` 下执行 `npm run dev` 时，只会读 `frontend/.env`，**不会**读项目根的 `.env`。
-- 做法：把项目根目录的 `.env` 复制到 `frontend/.env`，或只在 `frontend/` 下建 `.env.local`，并至少设置：
-  - `BACKEND_URL=http://localhost:8080`（Next 服务端代理用）
-  - `NEXT_PUBLIC_API_URL=/api`（浏览器请求 API 的地址）
+Next 只加载**当前工作目录**下的 `.env` / `.env.local`。在 `frontend/` 下执行 `npm run dev` 时，只会读 `frontend/` 里的文件，不会读项目根的 `.env`。
+
+在 `frontend` 目录下新建 `frontend/.env.local`，内容示例（默认后端为 http://45.207.211.30，未使用 Docker 桥接时）：
+
+```
+NEXT_PUBLIC_API_URL=/api
+BACKEND_URL=http://45.207.211.30
+PORT=2888
+```
+
+- `BACKEND_URL`：后端地址，供 Next 服务端把 `/api` 代理到后端；默认 `http://45.207.211.30`。
+- `PORT`：前端开发端口（默认 3000，设为 2888 与 .env 中 FRONTEND_PORT 一致）。
+
+然后在前端目录启动：
+
+```cmd
+cd frontend
+npm run dev
+```
+
+如需用 2888 端口，也可不建 `.env.local`，直接：
+
+```cmd
+cd frontend
+set PORT=2888
+set BACKEND_URL=http://45.207.211.30
+npm run dev
+```
 
 ### 小结
 
-| 环境           | 谁读 .env | 说明 |
-|----------------|-----------|------|
-| Docker         | docker-compose | 自动读项目根 `.env` 并注入各容器 |
-| Windows 非 Docker | 后端不读 | 需手动设置系统环境变量（如 JWT_SECRET） |
-| Windows 非 Docker | 前端不读根目录 .env | 需把 .env 放到 `frontend/` 下或建 `frontend/.env.local` |
+| 运行方式 | 后端 | 前端 |
+|----------|------|------|
+| 导入参数 | 执行 `run-backend-dev.bat` 或在终端里 `set` 后 `mvn spring-boot:run` | 在 `frontend/.env.local` 写 `BACKEND_URL`、`NEXT_PUBLIC_API_URL`、`PORT`，再 `cd frontend` → `npm run dev` |
+| 谁读 .env | 不读；只认当前进程环境变量 | 只读 `frontend/` 下的 `.env` / `.env.local` |
 
 ---
 

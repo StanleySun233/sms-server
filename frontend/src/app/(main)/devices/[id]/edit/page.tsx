@@ -18,42 +18,28 @@ export default function EditDevicePage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const fetchDevice = async () => {
-      try {
-        const response = await deviceApi.get(deviceId);
-        setDevice(response.data);
-        setAlias(response.data.alias);
-      } catch (error: any) {
-        setError(error.message || 'Failed to load device');
-        setTimeout(() => router.push('/devices'), 2000);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDevice();
+    deviceApi.get(deviceId).then((response) => {
+      setDevice(response.data);
+      setAlias(response.data.alias);
+    }).catch((error: any) => {
+      setError(error.message || 'Failed to load device');
+      setTimeout(() => router.push('/devices'), 2000);
+    }).finally(() => setLoading(false));
   }, [deviceId, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
     if (!alias.trim()) {
       setError('Please enter a device name');
       return;
     }
-
     setSaving(true);
-    try {
-      await deviceApi.update(deviceId, { alias });
+    deviceApi.update(deviceId, { alias }).then(() => {
       setSuccess('Device updated successfully!');
       setTimeout(() => router.push('/devices'), 1500);
-    } catch (error: any) {
-      setError(error.message || 'Failed to update device');
-    } finally {
-      setSaving(false);
-    }
+    }).catch((err: any) => setError(err.message || 'Failed to update device')).finally(() => setSaving(false));
   };
 
   if (loading) {
@@ -74,7 +60,7 @@ export default function EditDevicePage() {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
-        <h1 className="text-3xl font-bold text-white mb-6">Edit Device</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">编辑设备</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
@@ -90,7 +76,7 @@ export default function EditDevicePage() {
           )}
 
           <div>
-            <label className="block text-white/90 mb-2">Device Name</label>
+            <label className="block text-white/90 mb-2">设备名称</label>
             <input
               type="text"
               value={alias}
@@ -125,7 +111,7 @@ export default function EditDevicePage() {
                 color: '#fff',
               }}
             >
-              Cancel
+              取消
             </button>
           </div>
         </form>
