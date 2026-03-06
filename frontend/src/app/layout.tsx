@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
@@ -12,10 +11,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+
   return (
     <html lang="en">
       <head>
-        <Script src="/env-config.js" strategy="beforeInteractive" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__ENV__ = { NEXT_PUBLIC_API_URL: '${apiUrl}' };`,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>
