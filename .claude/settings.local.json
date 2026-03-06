@@ -18,7 +18,8 @@
       "Bash(mv .gitignore:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git push:*)"
     ]
   }
 }
