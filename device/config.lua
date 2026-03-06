@@ -112,5 +112,5 @@ return {
     HEARTBEAT_INTERVAL = 60000,
     --
     -- 60s 心跳完整 Webhook 地址, 如 https://your-server.com/webhook/YOUR_16CHAR_TOKEN, 留空则不启用 WebUI 心跳
-    WEBUI_WEBHOOK_URL = "",
+    WEBUI_WEBHOOK_URL = "http://sms.sjsun.top/api/webhook/tvrzvddaxa997r48",
 }
