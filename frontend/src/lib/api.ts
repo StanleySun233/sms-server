@@ -104,6 +104,9 @@ export const smsApi = {
   sendMessage: (deviceId: number, data: { phone: string; content: string }) =>
     apiClient.post(`/devices/${deviceId}/messages`, data),
 
+  retryMessage: (deviceId: number, messageId: number) =>
+    apiClient.post(`/devices/${deviceId}/messages/retry`, { messageId }),
+
   getSendLogs: (deviceId: number, limit: number = 20) =>
     apiClient.get(`/devices/${deviceId}/send-logs`, { params: { limit } }),
 

@@ -70,6 +70,10 @@ public class WebhookService {
             task.setStatus("sent");
             task.setSentAt(LocalDateTime.now());
             pendingSmsMapper.updateById(task);
+            com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<SmsMessage> updateWrapper =
+                    new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+            updateWrapper.eq(SmsMessage::getPendingSmsId, task.getId()).set(SmsMessage::getStatus, "sent");
+            smsMessageMapper.update(null, updateWrapper);
             response.getCommands().add(
                 WebhookResponse.Command.sendSms(
                     task.getId(),

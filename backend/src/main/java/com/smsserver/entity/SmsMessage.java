@@ -16,6 +16,7 @@ public class SmsMessage {
     private String content;
     private String direction; // "sent" or "received"
     private String status; // "pending", "sent", "delivered", "failed"
+    private Long pendingSmsId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

@@ -198,16 +198,10 @@ public class SmsService {
         return smsMessageMapper.selectPage(page, wrapper);
     }
 
-    /**
-     * Send an SMS message
-     * Creates a pending_sms record and pushes to Redis queue
-     */
     @Transactional
-    public PendingSms sendMessage(Long deviceId, String phone, String content, Long userId) {
-        // Verify device ownership
+    public SmsMessage sendMessage(Long deviceId, String phone, String content, Long userId) {
         Device device = deviceService.getDevice(deviceId, userId);
 
-        // Create pending SMS record
         PendingSms pendingSms = new PendingSms();
         pendingSms.setDeviceId(deviceId);
         pendingSms.setPhoneNumber(phone);
@@ -215,11 +209,20 @@ public class SmsService {
         pendingSms.setStatus("pending");
         pendingSmsMapper.insert(pendingSms);
 
-        // Push to Redis queue
+        SmsMessage smsMessage = new SmsMessage();
+        smsMessage.setDeviceId(deviceId);
+        smsMessage.setReceiverPhone(device.getCurrentPhoneNumber());
+        smsMessage.setPhoneNumber(phone);
+        smsMessage.setContent(content);
+        smsMessage.setDirection("sent");
+        smsMessage.setStatus("pending");
+        smsMessage.setPendingSmsId(pendingSms.getId());
+        smsMessageMapper.insert(smsMessage);
+
         redisService.pushPendingSmsTask(deviceId, pendingSms.getId());
 
-        log.info("Created pending SMS {} for device {} to {}", pendingSms.getId(), deviceId, phone);
-        return pendingSms;
+        log.info("Created pending SMS {} and sms_message {} for device {} to {}", pendingSms.getId(), smsMessage.getId(), deviceId, phone);
+        return smsMessage;
     }
 
     public List<PendingSms> getSendLogs(Long deviceId, Long userId, int limit) {
@@ -229,6 +232,26 @@ public class SmsService {
                 .orderByDesc(PendingSms::getCreatedAt)
                 .last("LIMIT " + Math.min(limit, 100));
         return pendingSmsMapper.selectList(wrapper);
+    }
+
+    @Transactional
+    public SmsMessage retryMessage(Long deviceId, Long messageId, Long userId) {
+        deviceService.getDevice(deviceId, userId);
+        SmsMessage message = smsMessageMapper.selectById(messageId);
+        if (message == null || !message.getDeviceId().equals(deviceId) || message.getPendingSmsId() == null) {
+            throw new RuntimeException("Message not found or not retryable");
+        }
+        PendingSms pending = pendingSmsMapper.selectById(message.getPendingSmsId());
+        if (pending == null) {
+            throw new RuntimeException("Pending task not found");
+        }
+        pending.setStatus("pending");
+        pendingSmsMapper.updateById(pending);
+        message.setStatus("pending");
+        smsMessageMapper.updateById(message);
+        redisService.pushPendingSmsTask(deviceId, pending.getId());
+        log.info("Retry message {} pending_sms {}", messageId, pending.getId());
+        return message;
     }
 
     /**

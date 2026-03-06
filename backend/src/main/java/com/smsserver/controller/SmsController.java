@@ -87,15 +87,29 @@ public class SmsController {
     }
 
     @PostMapping("/devices/{id}/messages")
-    public ResponseEntity<ApiResponse<PendingSms>> sendMessage(
+    public ResponseEntity<ApiResponse<SmsMessage>> sendMessage(
             @PathVariable Long id,
             @Valid @RequestBody SendMessageRequest request) {
         try {
             Long userId = getCurrentUserId();
-            PendingSms pendingSms = smsService.sendMessage(id, request.getPhone(), request.getContent(), userId);
-            return ResponseEntity.ok(ApiResponse.success(pendingSms));
+            SmsMessage message = smsService.sendMessage(id, request.getPhone(), request.getContent(), userId);
+            return ResponseEntity.ok(ApiResponse.success(message));
         } catch (Exception e) {
             log.error("Failed to send message", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/devices/{id}/messages/retry")
+    public ResponseEntity<ApiResponse<SmsMessage>> retryMessage(
+            @PathVariable Long id,
+            @RequestBody RetryMessageRequest request) {
+        try {
+            Long userId = getCurrentUserId();
+            SmsMessage message = smsService.retryMessage(id, request.getMessageId(), userId);
+            return ResponseEntity.ok(ApiResponse.success(message));
+        } catch (Exception e) {
+            log.error("Failed to retry message", e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }

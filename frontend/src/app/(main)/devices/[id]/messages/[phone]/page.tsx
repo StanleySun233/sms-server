@@ -157,7 +157,7 @@ export default function ConversationPage() {
     const phone = selectedSender === '__new__' ? newConversationPhone.trim() : selectedSender;
     if (!phone || !newMessage.trim() || sending) return;
     setSending(true);
-    await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
+    const res = await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
     setNewMessage('');
     setToast(t('sendSuccess'));
     setTimeout(() => setToast(''), 2000);
@@ -167,7 +167,12 @@ export default function ConversationPage() {
       setShowNewRow(false);
       fetchConversations();
     } else {
-      setTimeout(() => fetchMessages(false), 1000);
+      const created = res.data?.data as SmsMessage | undefined;
+      if (created?.id) {
+        setMessages((prev) => [...prev, created]);
+      } else {
+        setTimeout(() => fetchMessages(false), 1000);
+      }
     }
     setSending(false);
   };
@@ -179,14 +184,14 @@ export default function ConversationPage() {
 
   if (loading && !selectedSender) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="h-full flex items-center justify-center p-4">
         <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col min-h-0 p-4">
       {toast && (
         <div
           className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-white text-sm"
@@ -199,10 +204,10 @@ export default function ConversationPage() {
           {toast}
         </div>
       )}
-      <div className="container mx-auto px-4 py-4 flex-1 flex flex-col overflow-hidden">
-        <div className="flex gap-4 h-full">
+      <div className="flex-1 flex flex-col min-h-0 mx-auto w-full max-w-6xl">
+        <div className="flex gap-4 flex-1 min-h-0">
           <div
-            className="w-80 rounded-2xl shadow-xl overflow-hidden"
+            className="w-80 shrink-0 flex flex-col rounded-2xl shadow-xl overflow-hidden min-h-0"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(16px)',
@@ -236,7 +241,8 @@ export default function ConversationPage() {
                 {(receiverPhone === '__unknown__' || receiverPhone === 'none') ? t('noReceiver') : receiverPhone}
               </div>
             </div>
-            <ConversationList
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <ConversationList
               conversations={conversations}
               selectedPhone={selectedSender ?? undefined}
               onSelectConversation={handleSelectConversation}
@@ -245,10 +251,11 @@ export default function ConversationPage() {
               prependEmptyRow={showNewRow}
               onSelectEmptyRow={() => setSelectedSender('__new__')}
             />
+            </div>
           </div>
 
           <div
-            className="flex-1 rounded-2xl shadow-xl flex flex-col overflow-hidden"
+            className="flex-1 min-h-0 rounded-2xl shadow-xl flex flex-col overflow-hidden"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(16px)',
@@ -289,7 +296,7 @@ export default function ConversationPage() {
 
             <div
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-4 space-y-2"
+              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2"
               style={{ scrollBehavior: 'smooth' }}
             >
               {!selectedSender || selectedSender === '__new__' ? (
@@ -305,7 +312,17 @@ export default function ConversationPage() {
                     data-message-id={message.id}
                     data-direction={message.direction}
                   >
-                    <MessageBubble message={message} />
+                    <MessageBubble
+                      message={message}
+                      deviceId={deviceId}
+                      onRetry={(id) => {
+                        smsApi.retryMessage(deviceId, id).then(() => {
+                          setMessages((prev) =>
+                            prev.map((m) => (m.id === id ? { ...m, status: 'pending' as const } : m))
+                          );
+                        });
+                      }}
+                    />
                   </div>
                 ))
               )}

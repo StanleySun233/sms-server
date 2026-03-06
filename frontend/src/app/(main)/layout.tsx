@@ -10,9 +10,12 @@ export default function MainLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="min-h-screen" style={{ backgroundColor: 'rgb(45, 45, 45)' }}>
+      <div
+        className="flex flex-col h-screen overflow-hidden"
+        style={{ backgroundColor: 'rgb(45, 45, 45)' }}
+      >
         <NavBar />
-        <main>{children}</main>
+        <main className="flex-1 min-h-0 overflow-auto">{children}</main>
       </div>
     </AuthGuard>
   );
