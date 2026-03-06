@@ -3,10 +3,10 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 // Get API URL from runtime config (window object) or fallback to env
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
-    // @ts-ignore - runtime config injected via publicRuntimeConfig
-    return window.__RUNTIME_CONFIG__?.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api';
+    // @ts-ignore - runtime config injected via env-config.js
+    return window.__ENV__?.NEXT_PUBLIC_API_URL || '/api';
   }
-  return process.env.NEXT_PUBLIC_API_URL || '/api';
+  return '/api';
 };
 
 // Create axios instance with default config

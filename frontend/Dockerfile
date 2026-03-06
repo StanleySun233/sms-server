@@ -1,38 +1,27 @@
-# Frontend Dockerfile placeholder
-# This will be completed during frontend initialization (Task #3)
-
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
-
-# Build argument for API URL
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
-# Build application
 RUN npm run build
 
-# Production stage
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy built application
+RUN apk add --no-cache gettext
+
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/public ./public
+COPY entrypoint.sh /entrypoint.sh
 
-# Expose port
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 3000
 
-# Run application
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["npm", "start"]
