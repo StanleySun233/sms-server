@@ -193,3 +193,6 @@ backup/
 Thumbs.db
 .Spotlight-V100
 .Trashes
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
