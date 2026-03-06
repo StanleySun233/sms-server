@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import '../styles/globals.css';
-import { AuthProvider } from '@/contexts/AuthContext';
+import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: '短信服务管理',
@@ -24,7 +24,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

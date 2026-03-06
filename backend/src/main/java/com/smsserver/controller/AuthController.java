@@ -3,23 +3,30 @@ package com.smsserver.controller;
 import com.smsserver.dto.ChangePasswordRequest;
 import com.smsserver.dto.LoginRequest;
 import com.smsserver.dto.RegisterRequest;
+import com.smsserver.dto.UpdatePreferencesRequest;
 import com.smsserver.dto.UpdateProfileRequest;
 import com.smsserver.dto.UserResponse;
 import com.smsserver.entity.User;
 import com.smsserver.service.AuthService;
+import com.smsserver.service.UserPreferenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
+    private static final List<String> ALLOWED_LOCALES = Arrays.asList("zh", "en");
+
     private final AuthService authService;
+    private final UserPreferenceService userPreferenceService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -52,7 +59,10 @@ public class AuthController {
         if (principal == null || !(principal instanceof User)) {
             return ResponseEntity.status(401).body("Not authenticated");
         }
-        return ResponseEntity.ok(UserResponse.fromEntity((User) principal));
+        User user = (User) principal;
+        UserResponse response = UserResponse.fromEntity(user);
+        response.setPreferences(userPreferenceService.getPreferencesMap(user.getId()));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/me")
@@ -67,6 +77,21 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    @PutMapping("/me/preferences")
+    public ResponseEntity<?> updatePreferences(@Valid @RequestBody UpdatePreferencesRequest request) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal == null || !(principal instanceof User)) {
+            return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
+        }
+        String locale = request.getLocale();
+        if (!ALLOWED_LOCALES.contains(locale)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Locale not allowed"));
+        }
+        User user = (User) principal;
+        userPreferenceService.setPreference(user.getId(), UserPreferenceService.KEY_LOCALE, locale);
+        return ResponseEntity.ok(userPreferenceService.getPreferencesMap(user.getId()));
     }
 
     @PutMapping("/password")

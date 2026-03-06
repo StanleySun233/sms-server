@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/contexts/LocaleContext';
 import { ElMessage } from 'element-plus';
 import { missedCallApi } from '@/lib/api';
 import { MissedCallSummary } from '@/lib/types';
 
 export default function MissedCallsPage() {
+  const t = useTranslations('calls');
+  const tCommon = useTranslations('common');
+  const { locale } = useLocale();
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -19,41 +24,33 @@ export default function MissedCallsPage() {
       const response = await missedCallApi.getMissedCalls(deviceId);
       setCalls(response.data.data || []);
     };
-    load().catch((error: any) => ElMessage.error(error.message || '加载未接来电失败')).finally(() => setLoading(false));
+    load().catch((error: any) => ElMessage.error(error.message || t('loadFailed'))).finally(() => setLoading(false));
   }, [deviceId]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
 
     if (diffInHours < 1) {
       const minutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${minutes} 分钟前`;
+      return t('minutesAgo', { minutes });
     } else if (diffInHours < 24) {
       const hours = Math.floor(diffInHours);
-      return `${hours} 小时前`;
+      return t('hoursAgo', { hours });
     } else if (diffInHours < 48) {
-      return `昨天 ${date.toLocaleTimeString('zh-CN', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: false,
-      })}`;
+      const time = date.toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
+      return t('yesterdayAt', { time });
     } else {
-      return date.toLocaleString('zh-CN', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: false,
-      });
+      return date.toLocaleString(loc, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -62,7 +59,7 @@ export default function MissedCallsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">未接来电</h1>
+          <h1 className="text-4xl font-bold text-white">{t('title')}</h1>
           <button
             onClick={() => router.push(`/devices/${deviceId}`)}
             className="px-4 py-2 rounded-lg transition-all duration-200"
@@ -71,7 +68,7 @@ export default function MissedCallsPage() {
               color: '#fff',
             }}
           >
-            返回设备
+            {t('backToDevice')}
           </button>
         </div>
 
@@ -84,7 +81,7 @@ export default function MissedCallsPage() {
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}
           >
-            <p className="text-white/70 text-lg">暂无未接来电</p>
+            <p className="text-white/70 text-lg">{t('noMissedCalls')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -136,7 +133,7 @@ export default function MissedCallsPage() {
                       color: '#ef4444',
                     }}
                   >
-                    {call.count} 次来电
+                    {t('timesCall', { count: call.count })}
                   </div>
                 </div>
               </div>

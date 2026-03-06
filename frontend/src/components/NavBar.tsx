@@ -2,18 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { authApi } from '@/lib/api';
-
-const navItems = [
-  { href: '/dashboard', label: '仪表盘' },
-  { href: '/devices', label: '设备列表' },
-  { href: '/devices/new', label: '新建设备' },
-  { href: '/settings', label: '个人设置' },
-];
+import LocaleSwitcher from '@/components/LocaleSwitcher';
 
 export default function NavBar() {
+  const t = useTranslations('nav');
   const pathname = usePathname();
   const router = useRouter();
+
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard') },
+    { href: '/devices', label: t('devices') },
+    { href: '/devices/new', label: t('newDevice') },
+    { href: '/settings', label: t('settings') },
+  ];
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -37,7 +40,7 @@ export default function NavBar() {
         className="text-lg font-semibold mr-6"
         style={{ color: '#c2905e' }}
       >
-        短信服务
+        {t('appName')}
       </Link>
       <div className="flex items-center gap-1 flex-1">
         {navItems.map((item) => {
@@ -57,16 +60,19 @@ export default function NavBar() {
           );
         })}
       </div>
-      <button
-        onClick={handleLogout}
-        className="px-4 py-2 rounded-lg transition-all duration-200"
-        style={{
-          backgroundColor: 'rgba(239, 68, 68, 0.2)',
-          color: 'rgba(255,255,255,0.9)',
-        }}
-      >
-        退出登录
-      </button>
+      <div className="flex items-center gap-2">
+        <LocaleSwitcher />
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 rounded-lg transition-all duration-200"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            color: 'rgba(255,255,255,0.9)',
+          }}
+        >
+          {t('logout')}
+        </button>
+      </div>
     </nav>
   );
 }

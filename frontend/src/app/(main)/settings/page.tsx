@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import { ElMessage } from 'element-plus';
 import { authApi } from '@/lib/api';
-import { getAuthErrorMessage } from '@/lib/authMessages';
+import { useTranslations } from 'next-intl';
+import { getAuthErrorKey } from '@/lib/authMessages';
 
 export default function SettingsPage() {
+  const t = useTranslations('settings');
+  const tErrors = useTranslations('errors');
+  const tCommon = useTranslations('common');
   const [user, setUser] = useState<{ id: number; username: string; email: string; createdAt: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -25,42 +29,50 @@ export default function SettingsPage() {
 
   const handleSaveProfile = () => {
     if (!email.trim()) {
-      ElMessage.warning('请输入邮箱');
+      ElMessage.warning(t('enterEmail'));
       return;
     }
     setProfileSaving(true);
     authApi.updateProfile({ email: email.trim() }).then((res) => {
       setUser(res.data);
-      ElMessage.success('个人信息已保存');
-    }).catch((err: unknown) => ElMessage.error(getAuthErrorMessage(err instanceof Error ? err.message : '保存失败'))).finally(() => setProfileSaving(false));
+      ElMessage.success(t('profileSaved'));
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : '保存失败';
+      const key = getAuthErrorKey(msg);
+      ElMessage.error(key ? tErrors(key) : msg);
+    }).finally(() => setProfileSaving(false));
   };
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword) {
-      ElMessage.warning('请填写当前密码和新密码');
+      ElMessage.warning(t('fillPassword'));
       return;
     }
     if (newPassword.length < 6) {
-      ElMessage.warning('新密码至少 6 位');
+      ElMessage.warning(t('passwordMinLength'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      ElMessage.warning('两次输入的新密码不一致');
+      ElMessage.warning(t('passwordMismatch'));
       return;
     }
     setPasswordSaving(true);
     authApi.changePassword({ currentPassword, newPassword }).then(() => {
-      ElMessage.success('密码已修改');
+      ElMessage.success(t('passwordChanged'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }).catch((err: unknown) => ElMessage.error(getAuthErrorMessage(err instanceof Error ? err.message : '修改密码失败'))).finally(() => setPasswordSaving(false));
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : '修改密码失败';
+      const key = getAuthErrorKey(msg);
+      ElMessage.error(key ? tErrors(key) : msg);
+    }).finally(() => setPasswordSaving(false));
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -76,23 +88,23 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <h1 className="text-3xl font-bold mb-8" style={{ color: '#c2905e' }}>
-        个人设置
+        {t('title')}
       </h1>
 
       <div className="rounded-2xl p-8 shadow-xl mb-6" style={cardStyle}>
-        <h2 className="text-xl font-semibold text-white mb-4">个人信息</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">{t('profile')}</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-white/70 mb-2">用户名</label>
+            <label className="block text-white/70 mb-2">{t('username')}</label>
             <div className="text-white py-2">{user?.username}</div>
           </div>
           <div>
-            <label className="block text-white/70 mb-2">邮箱</label>
+            <label className="block text-white/70 mb-2">{t('email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="您的邮箱地址"
+              placeholder={t('placeholderEmail')}
               className={inputStyle}
             />
           </div>
@@ -102,43 +114,43 @@ export default function SettingsPage() {
             className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
             style={{ backgroundColor: '#c2905e', color: '#fff' }}
           >
-            {profileSaving ? '保存中...' : '保存'}
+            {profileSaving ? t('savingProfile') : t('saveProfile')}
           </button>
         </div>
       </div>
 
       <div className="rounded-2xl p-8 shadow-xl" style={cardStyle}>
-        <h2 className="text-xl font-semibold text-white mb-4">修改密码</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">{t('changePassword')}</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-white/70 mb-2">当前密码</label>
+            <label className="block text-white/70 mb-2">{t('currentPassword')}</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="当前密码"
+              placeholder={t('placeholderCurrentPassword')}
               className={inputStyle}
               autoComplete="current-password"
             />
           </div>
           <div>
-            <label className="block text-white/70 mb-2">新密码</label>
+            <label className="block text-white/70 mb-2">{t('newPassword')}</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="至少 6 位"
+              placeholder={t('placeholderNewPassword')}
               className={inputStyle}
               autoComplete="new-password"
             />
           </div>
           <div>
-            <label className="block text-white/70 mb-2">确认新密码</label>
+            <label className="block text-white/70 mb-2">{t('confirmPassword')}</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="再次输入新密码"
+              placeholder={t('placeholderConfirmPassword')}
               className={inputStyle}
               autoComplete="new-password"
             />
@@ -149,7 +161,7 @@ export default function SettingsPage() {
             className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
             style={{ backgroundColor: '#c2905e', color: '#fff' }}
           >
-            {passwordSaving ? '修改中...' : '修改密码'}
+            {passwordSaving ? t('changingPassword') : t('changePasswordBtn')}
           </button>
         </div>
       </div>

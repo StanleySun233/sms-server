@@ -1,12 +1,15 @@
 package com.smsserver.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import java.util.List;
 
 @Data
 public class WebhookRequest {
     private DeviceInfo deviceInfo;
+    @JsonDeserialize(using = ListOrEmptyObjectDeserializer.NewMessageListDeserializer.class)
     private List<NewMessage> newMessages;
+    @JsonDeserialize(using = ListOrEmptyObjectDeserializer.MissedCallListDeserializer.class)
     private List<MissedCall> missedCalls;
 
     @Data

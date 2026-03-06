@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
 import { Conversation } from '@/lib/types';
 import ConversationList from '@/components/ConversationList';
 
 export default function MessagesPage() {
+  const t = useTranslations('messages');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -21,7 +24,7 @@ export default function MessagesPage() {
       const response = await smsApi.getConversations(deviceId);
       setConversations(response.data.data || []);
     };
-    load().catch((error: any) => ElMessage.error(error.message || '加载会话失败')).finally(() => setLoading(false));
+    load().catch((error: any) => ElMessage.error(error.message || t('loadConversationsFailed'))).finally(() => setLoading(false));
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, [deviceId]);
@@ -33,7 +36,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -42,7 +45,7 @@ export default function MessagesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">短信</h1>
+          <h1 className="text-4xl font-bold text-white">{t('title')}</h1>
           <button
             onClick={() => router.push(`/devices/${deviceId}`)}
             className="px-4 py-2 rounded-lg transition-all duration-200"
@@ -51,7 +54,7 @@ export default function MessagesPage() {
               color: '#fff',
             }}
           >
-            返回设备
+            {t('backToDevice')}
           </button>
         </div>
 

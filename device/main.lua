@@ -148,7 +148,7 @@ sys.taskInit(function()
     local webhook_url_ok = type(config.WEBUI_WEBHOOK_URL) == "string" and config.WEBUI_WEBHOOK_URL ~= ""
     local legacy_webhook_ok = type(config.SMS_SERVER_URL) == "string" and config.SMS_SERVER_URL ~= "" and type(config.WEBHOOK_TOKEN) == "string" and config.WEBHOOK_TOKEN ~= ""
     if (webhook_url_ok or legacy_webhook_ok) and type(config.HEARTBEAT_INTERVAL) == "number" and config.HEARTBEAT_INTERVAL >= 60000 then
-        sys.timerLoopStart(util_webhook.doHeartbeat, config.HEARTBEAT_INTERVAL)
+        sys.timerLoopStart(function() sys.taskInit(util_webhook.doHeartbeat) end, config.HEARTBEAT_INTERVAL)
     end
 
     -- 新增：每隔2小时重启设备

@@ -3,6 +3,7 @@ package com.smsserver.dto;
 import com.smsserver.entity.User;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 public class UserResponse {
@@ -10,6 +11,7 @@ public class UserResponse {
     private String username;
     private String email;
     private LocalDateTime createdAt;
+    private Map<String, String> preferences;
 
     public static UserResponse fromEntity(User user) {
         UserResponse response = new UserResponse();

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Device } from '@/lib/types';
 import StatusIndicator from './StatusIndicator';
 import { useRouter } from 'next/navigation';
@@ -10,6 +11,7 @@ interface DeviceCardProps {
 }
 
 export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
+  const t = useTranslations('devices');
   const router = useRouter();
 
   return (
@@ -32,17 +34,17 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
       <div className="space-y-2 text-white/70 text-sm">
         {device.currentPhoneNumber && (
           <div>
-            <span className="font-medium">号码：</span> {device.currentPhoneNumber}
+            <span className="font-medium">{t('phone')}：</span> {device.currentPhoneNumber}
           </div>
         )}
         {device.lastHeartbeatAt && (
           <div>
-            <span className="font-medium">最后心跳：</span>{' '}
+            <span className="font-medium">{t('lastHeartbeatLabel')}</span>{' '}
             {new Date(device.lastHeartbeatAt).toLocaleString()}
           </div>
         )}
         <div>
-          <span className="font-medium">创建时间：</span>{' '}
+          <span className="font-medium">{t('createdLabel')}</span>{' '}
           {new Date(device.createdAt).toLocaleDateString()}
         </div>
       </div>
@@ -59,13 +61,13 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
             color: '#fff',
           }}
         >
-          编辑
+          {t('edit')}
         </button>
         {onDelete && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm('确定要删除该设备吗？')) {
+              if (confirm(t('confirmDelete'))) {
                 onDelete(device.id);
               }
             }}
@@ -75,7 +77,7 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
               color: '#fff',
             }}
           >
-            删除
+            {t('delete')}
           </button>
         )}
       </div>

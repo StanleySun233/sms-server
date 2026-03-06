@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
@@ -9,6 +10,8 @@ import StatusIndicator from '@/components/StatusIndicator';
 import CopyButton from '@/components/CopyButton';
 
 export default function DeviceDetailPage() {
+  const t = useTranslations('devices');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -22,7 +25,7 @@ export default function DeviceDetailPage() {
       setDevice(response.data);
     };
     fetchDevice().catch((error: any) => {
-      ElMessage.error(error.message || '加载设备失败');
+      ElMessage.error(error.message || t('loadFailed'));
       router.push('/devices');
     }).finally(() => setLoading(false));
 
@@ -31,18 +34,18 @@ export default function DeviceDetailPage() {
   }, [deviceId, router]);
 
   const handleDelete = async () => {
-    if (!confirm('确定要删除该设备吗？此操作不可恢复。')) {
+    if (!confirm(t('confirmDeleteIrreversible'))) {
       return;
     }
     await deviceApi.delete(deviceId);
-    ElMessage.success('设备已删除');
+    ElMessage.success(t('deleteSuccess'));
     router.push('/devices');
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -67,7 +70,7 @@ export default function DeviceDetailPage() {
               color: '#fff',
             }}
           >
-            返回设备列表
+            {t('backToList')}
           </button>
         </div>
 
@@ -79,40 +82,40 @@ export default function DeviceDetailPage() {
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
-          <h2 className="text-2xl font-semibold text-white mb-6">设备信息</h2>
+          <h2 className="text-2xl font-semibold text-white mb-6">{t('deviceInfo')}</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-white/70 mb-2">状态</label>
+              <label className="block text-white/70 mb-2">{t('status')}</label>
               <StatusIndicator status={device.status} />
             </div>
 
             <div>
-              <label className="block text-white/70 mb-2">Webhook 令牌</label>
+              <label className="block text-white/70 mb-2">{t('webhookToken')}</label>
               <div className="bg-black/30 p-4 rounded-lg mb-2">
                 <code className="text-green-400 break-all">{device.webhookToken}</code>
               </div>
-              <CopyButton text={device.webhookToken} label="复制令牌" />
+              <CopyButton text={device.webhookToken} label={tCommon('copyToken')} />
             </div>
 
             <div>
-              <label className="block text-white/70 mb-2">Webhook 地址</label>
+              <label className="block text-white/70 mb-2">{t('webhookUrl')}</label>
               <div className="bg-black/30 p-4 rounded-lg mb-2">
                 <code className="text-green-400 break-all">{webhookUrl}</code>
               </div>
-              <CopyButton text={webhookUrl} label="复制地址" />
+              <CopyButton text={webhookUrl} label={tCommon('copyUrl')} />
             </div>
 
             {device.currentPhoneNumber && (
               <div>
-                <label className="block text-white/70 mb-2">当前号码</label>
+                <label className="block text-white/70 mb-2">{t('currentNumber')}</label>
                 <div className="text-white text-lg">{device.currentPhoneNumber}</div>
               </div>
             )}
 
             {device.lastHeartbeatAt && (
               <div>
-                <label className="block text-white/70 mb-2">最后心跳</label>
+                <label className="block text-white/70 mb-2">{t('lastHeartbeat')}</label>
                 <div className="text-white text-lg">
                   {new Date(device.lastHeartbeatAt).toLocaleString()}
                 </div>
@@ -120,7 +123,7 @@ export default function DeviceDetailPage() {
             )}
 
             <div>
-              <label className="block text-white/70 mb-2">创建时间</label>
+              <label className="block text-white/70 mb-2">{t('createdAt')}</label>
               <div className="text-white text-lg">
                 {new Date(device.createdAt).toLocaleString()}
               </div>
@@ -136,7 +139,7 @@ export default function DeviceDetailPage() {
                 color: '#fff',
               }}
             >
-              编辑设备
+              {t('editDevice')}
             </button>
             <button
               onClick={handleDelete}
@@ -146,7 +149,7 @@ export default function DeviceDetailPage() {
                 color: '#fff',
               }}
             >
-              删除设备
+              {t('deleteDevice')}
             </button>
           </div>
         </div>
@@ -159,7 +162,7 @@ export default function DeviceDetailPage() {
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
-          <h2 className="text-2xl font-semibold text-white mb-4">快捷操作</h2>
+          <h2 className="text-2xl font-semibold text-white mb-4">{t('quickActions')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
@@ -170,8 +173,8 @@ export default function DeviceDetailPage() {
                 border: '1px solid rgba(255, 255, 255, 0.1)',
               }}
             >
-              <div className="text-white text-lg font-medium mb-2">短信</div>
-              <p className="text-white/70 text-sm">查看会话与发送消息</p>
+              <div className="text-white text-lg font-medium mb-2">{t('sms')}</div>
+              <p className="text-white/70 text-sm">{t('smsHint')}</p>
             </button>
 
             <button
@@ -197,9 +200,9 @@ export default function DeviceDetailPage() {
                     d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
                   />
                 </svg>
-                未接来电
+                {t('missedCalls')}
               </div>
-              <p className="text-white/70 text-sm">查看未接来电记录</p>
+              <p className="text-white/70 text-sm">{t('missedCallsHint')}</p>
             </button>
           </div>
         </div>

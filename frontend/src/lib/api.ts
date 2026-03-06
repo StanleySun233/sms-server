@@ -70,6 +70,9 @@ export const authApi = {
   updateProfile: (data: { email: string }) =>
     apiClient.put('/auth/me', data),
 
+  updatePreferences: (data: { locale: string }) =>
+    apiClient.put('/auth/me/preferences', data),
+
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     apiClient.put('/auth/password', data),
 };

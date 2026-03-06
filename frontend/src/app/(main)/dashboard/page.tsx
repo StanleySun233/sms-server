@@ -3,11 +3,13 @@
 import StatCard from '@/components/StatCard';
 import DeviceGrid from '@/components/DeviceGrid';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { authApi, dashboardApi } from '@/lib/api';
 import { DashboardStatsResponse } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
+  const t = useTranslations('dashboard');
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
@@ -45,10 +47,10 @@ export default function DashboardPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#c2905e' }}>
-            仪表盘
+            {t('title')}
           </h1>
           {user && (
-            <p className="text-white/70">欢迎回来，{user.username}</p>
+            <p className="text-white/70">{t('welcomeBack', { username: user.username })}</p>
           )}
         </div>
         <button
@@ -59,43 +61,43 @@ export default function DashboardPage() {
             border: '1px solid rgba(194, 144, 94, 0.5)',
           }}
         >
-          🔄 刷新
+          🔄 {t('refresh')}
         </button>
       </div>
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="text-white text-xl">加载仪表盘...</div>
+          <div className="text-white text-xl">{t('loading')}</div>
         </div>
       ) : stats ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <StatCard
-              title="在线设备"
+              title={t('onlineDevices')}
               value={stats.onlineDevices}
               icon="✓"
               color="#10b981"
             />
             <StatCard
-              title="告警设备"
+              title={t('warningDevices')}
               value={stats.warningDevices}
               icon="⚠"
               color="#f59e0b"
             />
             <StatCard
-              title="离线设备"
+              title={t('offlineDevices')}
               value={stats.offlineDevices}
               icon="✗"
               color="#ef4444"
             />
             <StatCard
-              title="未读短信"
+              title={t('unreadMessages')}
               value={stats.totalUnreadMessages}
               icon="💬"
               color="#c2905e"
             />
             <StatCard
-              title="未接来电"
+              title={t('missedCalls')}
               value={stats.totalUnreadCalls}
               icon="📞"
               color="#ef4444"
@@ -103,19 +105,19 @@ export default function DashboardPage() {
           </div>
 
           <div className="mb-6 text-white/50 text-sm flex justify-between items-center">
-            <span>最后更新：{lastUpdated.toLocaleTimeString()}</span>
-            <span className="text-white/30">每 30 秒自动刷新</span>
+            <span>{t('lastUpdated')}{lastUpdated.toLocaleTimeString()}</span>
+            <span className="text-white/30">{t('autoRefresh')}</span>
           </div>
 
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-white mb-6">
-              我的设备（{stats.devices.length}）
+              {t('myDevices', { count: stats.devices.length })}
             </h2>
             <DeviceGrid devices={stats.devices} />
           </div>
         </>
       ) : (
-        <div className="text-white text-center">加载仪表盘数据失败</div>
+        <div className="text-white text-center">{t('loadFailed')}</div>
       )}
     </div>
   );

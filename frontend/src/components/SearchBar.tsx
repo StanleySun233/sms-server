@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface SearchBarProps {
   onSearch: (params: {
@@ -12,6 +13,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ onSearch }: SearchBarProps) {
+  const t = useTranslations('messages');
   const [keyword, setKeyword] = useState('');
   const [phone, setPhone] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -35,7 +37,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <input
           type="text"
-          placeholder="按关键词搜索..."
+          placeholder={t('searchKeyword')}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           className="px-4 py-2 rounded-lg text-white placeholder-white/50"
@@ -46,7 +48,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         />
         <input
           type="text"
-          placeholder="按号码筛选..."
+          placeholder={t('searchPhone')}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           className="px-4 py-2 rounded-lg text-white placeholder-white/50"
@@ -57,7 +59,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         />
         <input
           type="datetime-local"
-          placeholder="开始时间"
+          placeholder={t('startTime')}
           value={startTime}
           onChange={(e) => setStartTime(e.target.value)}
           className="px-4 py-2 rounded-lg text-white"
@@ -68,7 +70,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         />
         <input
           type="datetime-local"
-          placeholder="结束时间"
+          placeholder={t('endTime')}
           value={endTime}
           onChange={(e) => setEndTime(e.target.value)}
           className="px-4 py-2 rounded-lg text-white"
@@ -83,7 +85,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         className="w-full px-6 py-2 rounded-lg font-medium transition-all duration-200"
         style={{ backgroundColor: '#c2905e', color: '#fff' }}
       >
-        搜索
+        {t('search')}
       </button>
     </form>
   );

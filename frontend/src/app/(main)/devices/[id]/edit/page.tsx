@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
 
 export default function EditDevicePage() {
+  const t = useTranslations('devices');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -22,7 +25,7 @@ export default function EditDevicePage() {
       setDevice(response.data);
       setAlias(response.data.alias);
     }).catch((error: any) => {
-      setError(error.message || '加载设备失败');
+      setError(error.message || t('loadFailed'));
       setTimeout(() => router.push('/devices'), 2000);
     }).finally(() => setLoading(false));
   }, [deviceId, router]);
@@ -32,20 +35,20 @@ export default function EditDevicePage() {
     setError('');
     setSuccess('');
     if (!alias.trim()) {
-      setError('请输入设备名称');
+      setError(t('nameRequired'));
       return;
     }
     setSaving(true);
     deviceApi.update(deviceId, { alias }).then(() => {
-      setSuccess('设备已更新');
+      setSuccess(t('updateSuccess'));
       setTimeout(() => router.push('/devices'), 1500);
-    }).catch((err: any) => setError(err.message || '更新设备失败')).finally(() => setSaving(false));
+    }).catch((err: any) => setError(err.message || t('updateFailed'))).finally(() => setSaving(false));
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -60,7 +63,7 @@ export default function EditDevicePage() {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
-        <h1 className="text-3xl font-bold text-white mb-6">编辑设备</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">{t('editDeviceTitle')}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
@@ -76,17 +79,17 @@ export default function EditDevicePage() {
           )}
 
           <div>
-            <label className="block text-white/90 mb-2">设备名称</label>
+            <label className="block text-white/90 mb-2">{t('deviceName')}</label>
             <input
               type="text"
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
-              placeholder="例如：我的 4G 设备"
+              placeholder={t('placeholderDeviceName')}
               maxLength={100}
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-[#c2905e] transition-colors"
             />
             <p className="text-white/60 text-sm mt-2">
-              为设备起一个便于识别的名称
+              {t('deviceNameHint')}
             </p>
           </div>
 
@@ -100,7 +103,7 @@ export default function EditDevicePage() {
                 color: '#fff',
               }}
             >
-              {saving ? '保存中...' : '保存修改'}
+              {saving ? tCommon('saving') : tCommon('saveChanges')}
             </button>
             <button
               type="button"
@@ -111,7 +114,7 @@ export default function EditDevicePage() {
                 color: '#fff',
               }}
             >
-              取消
+              {tCommon('cancel')}
             </button>
           </div>
         </form>

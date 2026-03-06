@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { DeviceStats } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import StatusIndicator from './StatusIndicator';
@@ -9,6 +10,7 @@ interface DeviceGridProps {
 }
 
 export default function DeviceGrid({ devices }: DeviceGridProps) {
+  const t = useTranslations('devices');
   const router = useRouter();
 
   if (devices.length === 0) {
@@ -21,13 +23,13 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
-        <p className="text-white/70 text-lg">暂无设备，请先添加设备</p>
+        <p className="text-white/70 text-lg">{t('addFirstHint')}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-6 gap-6">
       {devices.map((device) => (
         <div
           key={device.id}
@@ -49,14 +51,14 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
           <div className="space-y-3 text-white/70 text-sm">
             {device.currentPhoneNumber && (
               <div className="flex items-center gap-2">
-                <span className="font-medium">📱 号码：</span>
+                <span className="font-medium">📱 {t('phone')}：</span>
                 <span>{device.currentPhoneNumber}</span>
               </div>
             )}
 
             {device.lastHeartbeatAt && (
               <div className="flex items-center gap-2">
-                <span className="font-medium">💓 最后心跳：</span>
+                <span className="font-medium">💓 {t('lastHeartbeatLabel')}</span>
                 <span className="text-xs">{new Date(device.lastHeartbeatAt).toLocaleString()}</span>
               </div>
             )}
@@ -71,7 +73,7 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
                 >
                   <span>💬</span>
                   <span className="font-semibold">{device.unreadMessages}</span>
-                  <span className="text-xs">未读</span>
+                  <span className="text-xs">{t('unread')}</span>
                 </div>
               )}
 
@@ -84,13 +86,13 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
                 >
                   <span>📞</span>
                   <span className="font-semibold">{device.unreadCalls}</span>
-                  <span className="text-xs">未接</span>
+                  <span className="text-xs">{t('missed')}</span>
                 </div>
               )}
 
               {device.unreadMessages === 0 && device.unreadCalls === 0 && (
                 <div className="text-white/50 text-sm">
-                  已全部处理 ✓
+                  {t('allCaughtUp')}
                 </div>
               )}
             </div>

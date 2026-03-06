@@ -11,9 +11,10 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  role: 'ADMIN' | 'USER';
+  role?: 'ADMIN' | 'USER';
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  preferences?: { locale?: string };
 }
 
 export interface LoginRequest {

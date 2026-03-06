@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
 import { SmsMessage, Conversation } from '@/lib/types';
@@ -10,6 +11,8 @@ import ConversationList from '@/components/ConversationList';
 import ExportButton from '@/components/ExportButton';
 
 export default function ConversationPage() {
+  const t = useTranslations('messages');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -114,7 +117,7 @@ export default function ConversationPage() {
     setSending(true);
     await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
     setNewMessage('');
-    ElMessage.success('消息已发送');
+    ElMessage.success(t('sendSuccess'));
     setTimeout(() => fetchMessages(false), 1000);
     setSending(false);
   };
@@ -122,7 +125,7 @@ export default function ConversationPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -144,7 +147,7 @@ export default function ConversationPage() {
                 onClick={() => router.push(`/devices/${deviceId}`)}
                 className="text-white/70 hover:text-white transition-colors"
               >
-                ← 返回设备
+                ← {t('backToDevice')}
               </button>
             </div>
             <ConversationList
@@ -182,7 +185,7 @@ export default function ConversationPage() {
               style={{ scrollBehavior: 'smooth' }}
             >
               {messages.length === 0 ? (
-                <div className="text-white/50 text-center mt-8">暂无消息</div>
+                <div className="text-white/50 text-center mt-8">{t('noMessages')}</div>
               ) : (
                 messages.map((message) => (
                   <div
@@ -207,7 +210,7 @@ export default function ConversationPage() {
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="输入消息..."
+                  placeholder={t('placeholderMessage')}
                   disabled={sending}
                   className="flex-1 px-4 py-3 rounded-lg text-white placeholder-white/50"
                   style={{
@@ -224,7 +227,7 @@ export default function ConversationPage() {
                     color: '#fff',
                   }}
                 >
-                  {sending ? '发送中...' : '发送'}
+                  {sending ? t('sending') : t('send')}
                 </button>
               </div>
             </form>

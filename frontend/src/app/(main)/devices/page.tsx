@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
 import DeviceCard from '@/components/DeviceCard';
 
 export default function DevicesPage() {
+  const t = useTranslations('devices');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,21 +22,21 @@ export default function DevicesPage() {
 
   useEffect(() => {
     fetchDevices().catch((error: any) => {
-      ElMessage.error(error.message || '加载设备失败');
+      ElMessage.error(error.message || t('loadFailed'));
     }).finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id: number) => {
     deviceApi.delete(id).then(() => {
-      ElMessage.success('设备已删除');
+      ElMessage.success(t('deleteSuccess'));
       fetchDevices();
-    }).catch((error: any) => ElMessage.error(error.message || '删除失败'));
+    }).catch((error: any) => ElMessage.error(error.message || t('deleteFailed')));
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -41,7 +44,7 @@ export default function DevicesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-white">设备列表</h1>
+        <h1 className="text-4xl font-bold text-white">{t('listTitle')}</h1>
         <button
           onClick={() => router.push('/devices/new')}
           className="px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105"
@@ -50,7 +53,7 @@ export default function DevicesPage() {
             color: '#fff',
           }}
         >
-          添加设备
+          {t('addDevice')}
         </button>
       </div>
 
@@ -63,8 +66,8 @@ export default function DevicesPage() {
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
-          <h2 className="text-2xl font-semibold text-white mb-4">暂无设备</h2>
-          <p className="text-white/70 mb-6">添加你的第一个设备开始使用</p>
+          <h2 className="text-2xl font-semibold text-white mb-4">{t('noDevices')}</h2>
+          <p className="text-white/70 mb-6">{t('addFirstHint')}</p>
           <button
             onClick={() => router.push('/devices/new')}
             className="px-6 py-3 rounded-lg font-medium transition-all duration-200"
@@ -73,7 +76,7 @@ export default function DevicesPage() {
               color: '#fff',
             }}
           >
-            添加设备
+            {t('addDevice')}
           </button>
         </div>
       ) : (

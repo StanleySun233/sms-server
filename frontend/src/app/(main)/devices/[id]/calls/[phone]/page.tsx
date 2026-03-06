@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { missedCallApi } from '@/lib/api';
 import { MissedCallResponse } from '@/lib/types';
 import MissedCallCard from '@/components/MissedCallCard';
 
 export default function CallHistoryPage() {
+  const t = useTranslations('calls');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -22,30 +25,30 @@ export default function CallHistoryPage() {
   };
 
   useEffect(() => {
-    fetchCalls().catch((error: any) => ElMessage.error(error.message || '加载来电记录失败')).finally(() => setLoading(false));
+    fetchCalls().catch((error: any) => ElMessage.error(error.message || t('loadHistoryFailed'))).finally(() => setLoading(false));
   }, [deviceId, phone]);
 
   const handleMarkAsRead = async (callId: number) => {
     await missedCallApi.markAsRead([callId]);
-    ElMessage.success('已标记为已读');
+    ElMessage.success(t('markedRead'));
     fetchCalls();
   };
 
   const handleMarkAllAsRead = async () => {
     const unreadCallIds = calls.filter((call) => !call.readAt).map((call) => call.id);
     if (unreadCallIds.length === 0) {
-      ElMessage.info('已全部标记为已读');
+      ElMessage.info(t('allMarkedRead'));
       return;
     }
     await missedCallApi.markAsRead(unreadCallIds);
-    ElMessage.success(`已标记 ${unreadCallIds.length} 条为已读`);
+    ElMessage.success(t('markedCountRead', { count: unreadCallIds.length }));
     fetchCalls();
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">加载中...</div>
+        <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -57,7 +60,7 @@ export default function CallHistoryPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">来电记录</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">{t('callHistory')}</h1>
             <p className="text-white/70 text-lg">{phone}</p>
           </div>
           <button
@@ -68,7 +71,7 @@ export default function CallHistoryPage() {
               color: '#fff',
             }}
           >
-            返回未接来电
+            {t('backToMissedCalls')}
           </button>
         </div>
 
@@ -82,7 +85,7 @@ export default function CallHistoryPage() {
                 color: '#fff',
               }}
             >
-              全部标记为已读（{unreadCount}）
+              {t('markAllRead', { count: unreadCount })}
             </button>
           </div>
         )}
@@ -96,7 +99,7 @@ export default function CallHistoryPage() {
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}
           >
-            <p className="text-white/70 text-lg">暂无来电记录</p>
+            <p className="text-white/70 text-lg">{t('noCallHistory')}</p>
           </div>
         ) : (
           <div className="space-y-3">

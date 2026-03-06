@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/contexts/LocaleContext';
 import { MissedCallResponse } from '@/lib/types';
 
 interface MissedCallCardProps {
@@ -8,31 +10,26 @@ interface MissedCallCardProps {
 }
 
 export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardProps) {
+  const t = useTranslations('calls');
+  const { locale } = useLocale();
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
 
     if (diffInHours < 1) {
       const minutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${minutes} 分钟前`;
+      return t('minutesAgo', { minutes });
     } else if (diffInHours < 24) {
       const hours = Math.floor(diffInHours);
-      return `${hours} 小时前`;
+      return t('hoursAgo', { hours });
     } else if (diffInHours < 48) {
-      return `昨天 ${date.toLocaleTimeString('zh-CN', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: false,
-      })}`;
+      const time = date.toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
+      return t('yesterdayAt', { time });
     } else {
-      return date.toLocaleString('zh-CN', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: false,
-      });
+      return date.toLocaleString(loc, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
     }
   };
 
@@ -88,7 +85,7 @@ export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardPro
               color: '#fff',
             }}
           >
-            标记已读
+            {t('markRead')}
           </button>
         )}
       </div>
