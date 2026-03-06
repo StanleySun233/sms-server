@@ -74,6 +74,7 @@ public class SmsService {
             SmsMessage last = smsMessageMapper.selectOne(wrapper);
             if (last != null) {
                 summary.setLastMessage(last.getContent());
+                summary.setLastMessageDirection(last.getDirection());
                 summary.setLastMessageTime(last.getCreatedAt());
                 LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
                 unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
@@ -98,6 +99,7 @@ public class SmsService {
             LineSummaryResponse unknownSummary = new LineSummaryResponse();
             unknownSummary.setReceiverPhone(UNKNOWN_RECEIVER);
             unknownSummary.setLastMessage(unknownLast.getContent());
+            unknownSummary.setLastMessageDirection(unknownLast.getDirection());
             unknownSummary.setLastMessageTime(unknownLast.getCreatedAt());
             LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
             unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
@@ -117,6 +119,7 @@ public class SmsService {
             LineSummaryResponse noneSummary = new LineSummaryResponse();
             noneSummary.setReceiverPhone("none");
             noneSummary.setLastMessage(noneLast.getContent());
+            noneSummary.setLastMessageDirection(noneLast.getDirection());
             noneSummary.setLastMessageTime(noneLast.getCreatedAt());
             LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
             unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
@@ -169,6 +172,7 @@ public class SmsService {
             ConversationResponse conversation = new ConversationResponse();
             conversation.setPhone(phone);
             conversation.setLastMessage(lastMessage.getContent());
+            conversation.setLastMessageDirection(lastMessage.getDirection());
             conversation.setUnreadCount((int) unreadCount);
             conversation.setLastMessageTime(lastMessage.getCreatedAt());
             conversations.add(conversation);
@@ -379,6 +383,7 @@ public class SmsService {
             }
 
             writer.flush();
+            osw.flush();
             log.info("Exported {} messages for device {}", messages.size(), deviceId);
             return baos.toByteArray();
 

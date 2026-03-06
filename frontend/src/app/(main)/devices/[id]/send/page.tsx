@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
+import { formatDateTime } from '@/lib/dateUtils';
 
 type SendLogItem = {
   id: number;
@@ -67,7 +68,7 @@ export default function DeviceSendPage() {
     delivered: t('statusDelivered'),
     failed: t('statusFailed'),
   };
-  const formatTime = (s: string | null) => s ? new Date(s).toLocaleString() : '—';
+  const formatTime = (s: string | null) => s ? formatDateTime(s) : '—';
 
   return (
     <div className="container mx-auto px-4 py-8">

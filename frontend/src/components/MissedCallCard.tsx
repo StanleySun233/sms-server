@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useLocale } from '@/contexts/LocaleContext';
 import { MissedCallResponse } from '@/lib/types';
+import { formatDateTime } from '@/lib/dateUtils';
 
 interface MissedCallCardProps {
   call: MissedCallResponse;
@@ -11,27 +11,6 @@ interface MissedCallCardProps {
 
 export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardProps) {
   const t = useTranslations('calls');
-  const { locale } = useLocale();
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
-
-    if (diffInHours < 1) {
-      const minutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return t('minutesAgo', { minutes });
-    } else if (diffInHours < 24) {
-      const hours = Math.floor(diffInHours);
-      return t('hoursAgo', { hours });
-    } else if (diffInHours < 48) {
-      const time = date.toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
-      return t('yesterdayAt', { time });
-    } else {
-      return date.toLocaleString(loc, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
-    }
-  };
 
   return (
     <div
@@ -72,7 +51,7 @@ export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardPro
 
           <div>
             <p className="text-white font-medium">{call.phone}</p>
-            <p className="text-white/60 text-sm">{formatTimestamp(call.callTime)}</p>
+            <p className="text-white/60 text-sm">{formatDateTime(call.callTime)}</p>
           </div>
         </div>
 

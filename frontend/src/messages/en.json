@@ -62,6 +62,7 @@
     "offlineDevices": "Offline Devices",
     "unreadMessages": "Unread Messages",
     "missedCalls": "Missed Calls",
+    "sentMessages": "Sent Messages",
     "lastUpdated": "Last updated: ",
     "autoRefresh": "Auto-refresh every 30s",
     "myDevices": "Your Devices ({count})"

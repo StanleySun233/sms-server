@@ -2,6 +2,7 @@ package com.smsserver.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.smsserver.service.RedisService;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -17,19 +18,26 @@ import java.sql.Statement;
 public class StartupHealthCheck {
 
     private static final Logger log = LoggerFactory.getLogger(StartupHealthCheck.class);
+    private static final String JWT_KEY_PATTERN = "jwt:*";
 
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
+    private final RedisService redisService;
 
-    public StartupHealthCheck(DataSource dataSource, RedisConnectionFactory redisConnectionFactory) {
+    public StartupHealthCheck(DataSource dataSource, RedisConnectionFactory redisConnectionFactory, RedisService redisService) {
         this.dataSource = dataSource;
         this.redisConnectionFactory = redisConnectionFactory;
+        this.redisService = redisService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void checkConnections() {
         checkMysql();
         checkRedis();
+        long deleted = redisService.deleteKeysByPattern(JWT_KEY_PATTERN);
+        if (deleted > 0) {
+            log.info("Cleared {} JWT key(s) from Redis on startup", deleted);
+        }
     }
 
     private void checkMysql() {

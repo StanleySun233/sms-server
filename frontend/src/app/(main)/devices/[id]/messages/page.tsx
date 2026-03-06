@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
 import { LineSummary } from '@/lib/types';
-import { useLocale } from '@/contexts/LocaleContext';
+import { formatDateTime } from '@/lib/dateUtils';
 
 export default function MessagesPage() {
   const t = useTranslations('messages');
@@ -14,8 +14,6 @@ export default function MessagesPage() {
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
-  const { locale } = useLocale();
-  const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
 
   const [lines, setLines] = useState<LineSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,17 +116,34 @@ export default function MessagesPage() {
                         </span>
                       )}
                     </div>
+                    {line.lastMessage != null && (
+                      <div className="text-xs text-white/50 mb-0.5 flex items-center gap-1">
+                        {line.lastMessageDirection === 'received' ? (
+                          <>
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="7 10 12 15 17 10" />
+                              <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            收到
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="22" y1="2" x2="11" y2="13" />
+                              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                            发出
+                          </>
+                        )}
+                      </div>
+                    )}
                     <div className="text-sm text-white/70 truncate">
                       {line.lastMessage || t('noMessages')}
                     </div>
                     {line.lastMessageTime && (
                       <div className="text-xs text-white/50 mt-1">
-                        {new Date(line.lastMessageTime).toLocaleString(loc, {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatDateTime(line.lastMessageTime)}
                       </div>
                     )}
                   </div>

@@ -3,15 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useLocale } from '@/contexts/LocaleContext';
 import { ElMessage } from 'element-plus';
 import { missedCallApi } from '@/lib/api';
 import { MissedCallSummary } from '@/lib/types';
+import { formatDateTime } from '@/lib/dateUtils';
 
 export default function MissedCallsPage() {
   const t = useTranslations('calls');
   const tCommon = useTranslations('common');
-  const { locale } = useLocale();
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
@@ -26,26 +25,6 @@ export default function MissedCallsPage() {
     };
     load().catch((error: any) => ElMessage.error(error.message || t('loadFailed'))).finally(() => setLoading(false));
   }, [deviceId]);
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
-
-    if (diffInHours < 1) {
-      const minutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return t('minutesAgo', { minutes });
-    } else if (diffInHours < 24) {
-      const hours = Math.floor(diffInHours);
-      return t('hoursAgo', { hours });
-    } else if (diffInHours < 48) {
-      const time = date.toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
-      return t('yesterdayAt', { time });
-    } else {
-      return date.toLocaleString(loc, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: locale === 'en' });
-    }
-  };
 
   if (loading) {
     return (
@@ -122,7 +101,7 @@ export default function MissedCallsPage() {
 
                     <div>
                       <h3 className="text-xl font-semibold text-white">{call.phone}</h3>
-                      <p className="text-white/60 text-sm">{formatTimestamp(call.lastCallTime)}</p>
+                      <p className="text-white/60 text-sm">{formatDateTime(call.lastCallTime)}</p>
                     </div>
                   </div>
 

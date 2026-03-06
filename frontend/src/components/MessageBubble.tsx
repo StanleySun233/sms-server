@@ -1,6 +1,7 @@
 'use client';
 
 import { SmsMessage } from '@/lib/types';
+import { formatDateTime } from '@/lib/dateUtils';
 
 interface MessageBubbleProps {
   message: SmsMessage;
@@ -42,10 +43,7 @@ export default function MessageBubble({ message, deviceId, onRetry }: MessageBub
       >
         <p className="text-white break-words">{message.content}</p>
         <div className={`text-xs mt-1 ${isSent ? 'text-white/70' : 'text-white/50'}`}>
-          {new Date(message.createdAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {formatDateTime(message.createdAt)}
         </div>
       </div>
     </div>

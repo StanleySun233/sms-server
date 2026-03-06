@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
-import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat } from '@/lib/dateUtils';
+import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat, formatDateTime } from '@/lib/dateUtils';
 import StatusIndicator from '@/components/StatusIndicator';
 import CopyButton from '@/components/CopyButton';
 
@@ -122,7 +122,7 @@ export default function DeviceDetailPage() {
             <div>
               <label className="block text-white/70 mb-2">{t('createdAt')}</label>
               <div className="text-white text-lg">
-                {new Date(device.createdAt).toLocaleString()}
+                {formatDateTime(device.createdAt)}
               </div>
             </div>
           </div>

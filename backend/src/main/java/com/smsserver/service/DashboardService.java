@@ -43,6 +43,7 @@ public class DashboardService {
         int offlineCount = 0;
         int totalUnreadMessages = 0;
         int totalUnreadCalls = 0;
+        List<Long> deviceIds = new ArrayList<>();
 
         List<DashboardStatsResponse.DeviceStats> deviceStatsList = new ArrayList<>();
 
@@ -63,9 +64,9 @@ public class DashboardService {
                     break;
             }
 
-            // Count unread messages for this device
             LambdaQueryWrapper<SmsMessage> messageWrapper = new LambdaQueryWrapper<>();
             messageWrapper.eq(SmsMessage::getDeviceId, device.getId())
+                         .eq(SmsMessage::getDirection, "received")
                          .isNull(SmsMessage::getReadAt);
             long unreadMessages = smsMessageMapper.selectCount(messageWrapper);
             totalUnreadMessages += unreadMessages;
@@ -92,14 +93,24 @@ public class DashboardService {
             stats.setCurrentPhoneNumber(device.getCurrentPhoneNumber());
 
             deviceStatsList.add(stats);
+            deviceIds.add(device.getId());
         }
 
-        // Set response data
+        LambdaQueryWrapper<SmsMessage> sentWrapper = new LambdaQueryWrapper<>();
+        sentWrapper.eq(SmsMessage::getDirection, "sent");
+        if (!deviceIds.isEmpty()) {
+            sentWrapper.in(SmsMessage::getDeviceId, deviceIds);
+        } else {
+            sentWrapper.eq(SmsMessage::getDeviceId, -1L);
+        }
+        long totalSentMessages = smsMessageMapper.selectCount(sentWrapper);
+
         response.setOnlineDevices(onlineCount);
         response.setWarningDevices(warningCount);
         response.setOfflineDevices(offlineCount);
         response.setTotalUnreadMessages(totalUnreadMessages);
         response.setTotalUnreadCalls(totalUnreadCalls);
+        response.setTotalSentMessages((int) totalSentMessages);
         response.setDevices(deviceStatsList);
 
         log.info("Dashboard stats for user {}: {} online, {} warning, {} offline, {} unread messages, {} unread calls",

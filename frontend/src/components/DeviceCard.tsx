@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Device } from '@/lib/types';
-import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat } from '@/lib/dateUtils';
+import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat, formatDateTime } from '@/lib/dateUtils';
 import StatusIndicator from './StatusIndicator';
 import { useRouter } from 'next/navigation';
 
@@ -41,7 +41,7 @@ export default function DeviceCard({ device }: DeviceCardProps) {
         </div>
         <div>
           <span className="font-medium">{t('createdLabel')}</span>{' '}
-          {new Date(device.createdAt).toLocaleDateString()}
+          {formatDateTime(device.createdAt)}
         </div>
       </div>
 

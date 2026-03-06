@@ -175,7 +175,9 @@ public class SmsController {
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .header(HttpHeaders.CONTENT_ENCODING, "identity")
                     .contentType(MediaType.parseMediaType("text/csv"))
+                    .contentLength(data.length)
                     .body(data);
         } catch (Exception e) {
             log.error("Failed to export messages", e);

@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public class LineSummaryResponse {
     private String receiverPhone;
     private String lastMessage;
+    private String lastMessageDirection;
     private Integer unreadCount;
     private LocalDateTime lastMessageTime;
 }

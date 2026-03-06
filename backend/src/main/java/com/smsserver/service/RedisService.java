@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -124,5 +125,14 @@ public class RedisService {
     public void setDeviceUnreadCount(Long deviceId, Long count) {
         String key = "device:unread:" + deviceId;
         redisTemplate.opsForValue().set(key, count.toString(), 10, TimeUnit.MINUTES);
+    }
+
+    public long deleteKeysByPattern(String pattern) {
+        Set<String> keys = redisTemplate.keys(pattern);
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+            return keys.size();
+        }
+        return 0;
     }
 }

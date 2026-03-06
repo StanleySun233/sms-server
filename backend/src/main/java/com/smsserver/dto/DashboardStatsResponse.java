@@ -10,6 +10,7 @@ public class DashboardStatsResponse {
     private int offlineDevices;
     private int totalUnreadMessages;
     private int totalUnreadCalls;
+    private int totalSentMessages;
     private List<DeviceStats> devices;
 
     @Data

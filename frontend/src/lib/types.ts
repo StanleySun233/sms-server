@@ -68,6 +68,7 @@ export interface SmsMessage {
 export interface LineSummary {
   receiverPhone: string;
   lastMessage: string | null;
+  lastMessageDirection?: 'sent' | 'received';
   unreadCount: number;
   lastMessageTime: string | null;
 }
@@ -75,6 +76,7 @@ export interface LineSummary {
 export interface Conversation {
   phone: string;
   lastMessage: string;
+  lastMessageDirection?: 'sent' | 'received';
   unreadCount: number;
   lastMessageTime: string;
 }
@@ -131,6 +133,7 @@ export interface DashboardStatsResponse {
   offlineDevices: number;
   totalUnreadMessages: number;
   totalUnreadCalls: number;
+  totalSentMessages: number;
   devices: DeviceStats[];
 }
 

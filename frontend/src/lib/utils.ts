@@ -1,11 +1,6 @@
-export const formatDate = (dateString: string, formatStr: string = 'PPpp'): string => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleString();
-  } catch (error) {
-    return dateString;
-  }
-};
+import { formatDateTime } from '@/lib/dateUtils';
+
+export const formatDate = (dateString: string): string => formatDateTime(dateString);
 
 export const formatPhoneNumber = (phoneNumber: string): string => {
   const cleaned = phoneNumber.replace(/\D/g, '');
