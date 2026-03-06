@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ElMessage } from 'element-plus';
 import { authApi } from '@/lib/api';
+import { getAuthErrorMessage } from '@/lib/authMessages';
 
 export default function SettingsPage() {
   const [user, setUser] = useState<{ id: number; username: string; email: string; createdAt: string } | null>(null);
@@ -31,7 +32,7 @@ export default function SettingsPage() {
     authApi.updateProfile({ email: email.trim() }).then((res) => {
       setUser(res.data);
       ElMessage.success('个人信息已保存');
-    }).catch((err: any) => ElMessage.error(err.message || 'Save failed')).finally(() => setProfileSaving(false));
+    }).catch((err: unknown) => ElMessage.error(getAuthErrorMessage(err instanceof Error ? err.message : '保存失败'))).finally(() => setProfileSaving(false));
   };
 
   const handleChangePassword = () => {
@@ -53,7 +54,7 @@ export default function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }).catch((err: any) => ElMessage.error(err.message || 'Change password failed')).finally(() => setPasswordSaving(false));
+    }).catch((err: unknown) => ElMessage.error(getAuthErrorMessage(err instanceof Error ? err.message : '修改密码失败'))).finally(() => setPasswordSaving(false));
   };
 
   if (loading) {

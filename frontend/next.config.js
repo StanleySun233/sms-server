@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || 'http://45.207.211.30';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080';
     return [
       {
         source: '/api/:path*',

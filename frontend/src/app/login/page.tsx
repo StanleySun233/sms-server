@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAuthErrorMessage } from '@/lib/authMessages';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,8 +20,9 @@ export default function LoginPage() {
     try {
       await login(form.username, form.password);
       router.push('/dashboard');
-    } catch (error: any) {
-      setError(error.response?.data || error.message || 'Login failed');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '登录失败';
+      setError(getAuthErrorMessage(msg));
     } finally {
       setLoading(false);
     }

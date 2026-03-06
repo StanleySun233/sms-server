@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
+import { getAuthErrorMessage } from '@/lib/authMessages';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,10 +18,10 @@ export default function RegisterPage() {
 
     try {
       await authApi.register(form);
-      // After successful registration, redirect to login
       router.push('/login');
-    } catch (error: any) {
-      setError(error.response?.data || error.message || 'Registration failed');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '注册失败';
+      setError(getAuthErrorMessage(msg));
     } finally {
       setLoading(false);
     }

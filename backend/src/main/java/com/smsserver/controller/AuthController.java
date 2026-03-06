@@ -27,7 +27,7 @@ public class AuthController {
             User user = authService.register(request);
             return ResponseEntity.ok(UserResponse.fromEntity(user));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -37,7 +37,7 @@ public class AuthController {
             String token = authService.login(request);
             return ResponseEntity.ok(Map.of("token", token));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -59,19 +59,27 @@ public class AuthController {
     public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal == null || !(principal instanceof User)) {
-            return ResponseEntity.status(401).body("Not authenticated");
+            return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
         }
-        User user = authService.updateProfile(((User) principal).getId(), request.getEmail());
-        return ResponseEntity.ok(UserResponse.fromEntity(user));
+        try {
+            User user = authService.updateProfile(((User) principal).getId(), request.getEmail());
+            return ResponseEntity.ok(UserResponse.fromEntity(user));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal == null || !(principal instanceof User)) {
-            return ResponseEntity.status(401).body("Not authenticated");
+            return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
         }
-        authService.changePassword(((User) principal).getId(), request.getCurrentPassword(), request.getNewPassword());
-        return ResponseEntity.ok(Map.of("message", "Password updated"));
+        try {
+            authService.changePassword(((User) principal).getId(), request.getCurrentPassword(), request.getNewPassword());
+            return ResponseEntity.ok(Map.of("message", "Password updated"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }
