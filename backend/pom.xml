@@ -14,7 +14,7 @@
 
     <groupId>com.smsserver</groupId>
     <artifactId>sms-server</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.0</version>
     <name>SMS Server</name>
     <description>SMS Server Backend Application</description>
 
