@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { authApi, dashboardApi } from '@/lib/api';
 import { DashboardStatsResponse } from '@/lib/types';
+import { getDeviceStatusFromHeartbeat } from '@/lib/dateUtils';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
@@ -74,19 +75,19 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <StatCard
               title={t('onlineDevices')}
-              value={stats.onlineDevices}
+              value={stats.devices.filter((d) => getDeviceStatusFromHeartbeat(d.lastHeartbeatAt) === 'online').length}
               icon="✓"
               color="#10b981"
             />
             <StatCard
               title={t('warningDevices')}
-              value={stats.warningDevices}
+              value={stats.devices.filter((d) => getDeviceStatusFromHeartbeat(d.lastHeartbeatAt) === 'warning').length}
               icon="⚠"
               color="#f59e0b"
             />
             <StatCard
               title={t('offlineDevices')}
-              value={stats.offlineDevices}
+              value={stats.devices.filter((d) => getDeviceStatusFromHeartbeat(d.lastHeartbeatAt) === 'offline').length}
               icon="✗"
               color="#ef4444"
             />

@@ -5,8 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
-import { Conversation } from '@/lib/types';
-import ConversationList from '@/components/ConversationList';
+import { LineSummary } from '@/lib/types';
+import { useLocale } from '@/contexts/LocaleContext';
 
 export default function MessagesPage() {
   const t = useTranslations('messages');
@@ -14,24 +14,35 @@ export default function MessagesPage() {
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
+  const { locale } = useLocale();
+  const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [lines, setLines] = useState<LineSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const load = async () => {
-      const response = await smsApi.getConversations(deviceId);
-      setConversations(response.data.data || []);
+      const response = await smsApi.getMessageLines(deviceId);
+      setLines(response.data.data || []);
     };
-    load().catch((error: any) => ElMessage.error(error.message || t('loadConversationsFailed'))).finally(() => setLoading(false));
+    load().catch((error: unknown) => ElMessage.error((error as Error).message || t('loadLinesFailed'))).finally(() => setLoading(false));
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, [deviceId]);
 
-  const handleSelectConversation = (phone: string) => {
-    router.push(`/devices/${deviceId}/messages/${encodeURIComponent(phone)}`);
+  const handleSelectLine = (receiverPhone: string) => {
+    router.push(`/devices/${deviceId}/messages/${encodeURIComponent(receiverPhone)}`);
   };
+
+  const unknownLabel = t('unknownReceiverNumber');
+  const filteredLines = lines.filter(
+    (line) =>
+      (line.receiverPhone === '__unknown__' ? unknownLabel : line.receiverPhone)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      (line.lastMessage || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -67,12 +78,64 @@ export default function MessagesPage() {
             height: 'calc(100vh - 250px)',
           }}
         >
-          <ConversationList
-            conversations={conversations}
-            onSelectConversation={handleSelectConversation}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
+          <div className="flex flex-col h-full">
+            <div className="p-4">
+              <input
+                type="text"
+                placeholder={t('searchConversations')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg text-white placeholder-white/50"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                }}
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {filteredLines.length === 0 ? (
+                <div className="p-4 text-white/50 text-center">{t('noLines')}</div>
+              ) : (
+                filteredLines.map((line) => (
+                  <div
+                    key={line.receiverPhone}
+                    onClick={() => handleSelectLine(line.receiverPhone)}
+                    className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
+                    style={{
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-white">
+                        {line.receiverPhone === '__unknown__' ? unknownLabel : line.receiverPhone}
+                      </span>
+                      {line.unreadCount > 0 && (
+                        <span
+                          className="px-2 py-1 rounded-full text-xs font-bold text-white"
+                          style={{ backgroundColor: '#c2905e' }}
+                        >
+                          {line.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-white/70 truncate">
+                      {line.lastMessage || t('noMessages')}
+                    </div>
+                    {line.lastMessageTime && (
+                      <div className="text-xs text-white/50 mt-1">
+                        {new Date(line.lastMessageTime).toLocaleString(loc, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

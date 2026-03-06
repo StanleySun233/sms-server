@@ -88,30 +88,39 @@ export const deviceApi = {
 
 // SMS API functions
 export const smsApi = {
-  getConversations: (deviceId: number) =>
-    apiClient.get(`/devices/${deviceId}/conversations`),
+  getMessageLines: (deviceId: number) =>
+    apiClient.get(`/devices/${deviceId}/messages/lines`),
 
-  getMessages: (deviceId: number, phone: string, page: number = 1, size: number = 50) =>
+  getConversations: (deviceId: number, receiverPhone?: string) =>
+    apiClient.get(`/devices/${deviceId}/conversations`, {
+      params: receiverPhone != null ? { receiverPhone } : {}
+    }),
+
+  getMessages: (deviceId: number, phone: string, page: number = 1, size: number = 50, receiverPhone?: string) =>
     apiClient.get(`/devices/${deviceId}/messages`, {
-      params: { phone, page, size }
+      params: { phone, page, size, ...(receiverPhone != null ? { receiverPhone } : {}) }
     }),
 
   sendMessage: (deviceId: number, data: { phone: string; content: string }) =>
     apiClient.post(`/devices/${deviceId}/messages`, data),
 
+  getSendLogs: (deviceId: number, limit: number = 20) =>
+    apiClient.get(`/devices/${deviceId}/send-logs`, { params: { limit } }),
+
   markAsRead: (messageIds: number[]) =>
     apiClient.put('/messages/read', { messageIds }),
 
   searchMessages: (deviceId: number, params: {
+    receiverPhone?: string;
     keyword?: string;
     phone?: string;
     start_time?: string;
     end_time?: string;
   }) => apiClient.get(`/devices/${deviceId}/messages/search`, { params }),
 
-  exportMessages: (deviceId: number, phone?: string) =>
+  exportMessages: (deviceId: number, receiverPhone?: string, phone?: string) =>
     apiClient.get(`/devices/${deviceId}/messages/export`, {
-      params: { phone, format: 'csv' },
+      params: { receiverPhone, phone, format: 'csv' },
       responseType: 'blob'
     }),
 };

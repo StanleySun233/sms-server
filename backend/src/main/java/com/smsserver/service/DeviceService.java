@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -57,17 +58,19 @@ public class DeviceService {
         if (device.getLastHeartbeatAt() == null) {
             return "offline";
         }
-
-        Duration duration = Duration.between(device.getLastHeartbeatAt(), LocalDateTime.now(ZoneOffset.UTC));
+        Instant heartbeat = device.getLastHeartbeatAt().atZone(ZoneOffset.UTC).toInstant();
+        Duration duration = Duration.between(heartbeat, Instant.now());
         long minutes = duration.toMinutes();
-
+        if (minutes < 0) {
+            return "online";
+        }
         if (minutes < 3) {
             return "online";
-        } else if (minutes < 5) {
-            return "warning";
-        } else {
-            return "offline";
         }
+        if (minutes < 5) {
+            return "warning";
+        }
+        return "offline";
     }
 
     /**

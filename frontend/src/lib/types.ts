@@ -65,6 +65,13 @@ export interface SmsMessage {
   readAt?: string;
 }
 
+export interface LineSummary {
+  receiverPhone: string;
+  lastMessage: string | null;
+  unreadCount: number;
+  lastMessageTime: string | null;
+}
+
 export interface Conversation {
   phone: string;
   lastMessage: string;

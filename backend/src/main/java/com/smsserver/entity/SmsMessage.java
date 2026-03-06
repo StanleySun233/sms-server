@@ -11,6 +11,7 @@ public class SmsMessage {
     private Long id;
 
     private Long deviceId;
+    private String receiverPhone;
     private String phoneNumber;
     private String content;
     private String direction; // "sent" or "received"

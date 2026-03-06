@@ -16,14 +16,17 @@ export default function ConversationPage() {
   const router = useRouter();
   const params = useParams();
   const deviceId = parseInt(params.id as string);
-  const phone = decodeURIComponent(params.phone as string);
+  const receiverPhone = decodeURIComponent(params.phone as string);
 
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedSender, setSelectedSender] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNewPhoneInput, setShowNewPhoneInput] = useState(false);
+  const [newPhoneInput, setNewPhoneInput] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -32,21 +35,28 @@ export default function ConversationPage() {
   const unreadMessagesRef = useRef<Set<number>>(new Set());
 
   const fetchConversations = async () => {
-    const response = await smsApi.getConversations(deviceId);
-    setConversations(response.data.data || []);
+    const response = await smsApi.getConversations(deviceId, receiverPhone);
+    const list = response.data.data || [];
+    setConversations(list);
+    if (list.length > 0 && !selectedSender) {
+      setSelectedSender(list[0].phone);
+    }
   };
 
   const fetchMessages = async (resetPage: boolean = false) => {
+    if (!selectedSender) {
+      setLoading(false);
+      return;
+    }
     const currentPage = resetPage ? 1 : page;
-    const response = await smsApi.getMessages(deviceId, phone, currentPage, 50);
+    const response = await smsApi.getMessages(deviceId, selectedSender, currentPage, 50, receiverPhone);
     const data = response.data.data;
     if (data && data.records) {
+      const records = data.records as SmsMessage[];
       if (resetPage) {
-        setMessages(data.records.reverse());
+        setMessages(records.reverse());
       } else {
-        const newMsgs = data.records.filter(
-          (msg: SmsMessage) => !messages.find((m) => m.id === msg.id)
-        );
+        const newMsgs = records.filter((msg: SmsMessage) => !messages.find((m) => m.id === msg.id));
         if (newMsgs.length > 0) {
           setMessages([...messages, ...newMsgs.reverse()]);
         }
@@ -68,13 +78,25 @@ export default function ConversationPage() {
 
   useEffect(() => {
     fetchConversations();
-  }, [deviceId]);
+  }, [deviceId, receiverPhone]);
 
   useEffect(() => {
-    fetchMessages(true);
+    if (selectedSender) {
+      setLoading(true);
+      setMessages([]);
+      setPage(1);
+      fetchMessages(true);
+    } else {
+      setLoading(false);
+      setMessages([]);
+    }
+  }, [deviceId, receiverPhone, selectedSender]);
+
+  useEffect(() => {
+    if (!selectedSender) return;
     const interval = setInterval(() => fetchMessages(false), 5000);
     return () => clearInterval(interval);
-  }, [deviceId, phone]);
+  }, [deviceId, receiverPhone, selectedSender]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -113,16 +135,30 @@ export default function ConversationPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || sending) return;
+    if (!selectedSender || !newMessage.trim() || sending) return;
     setSending(true);
-    await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
+    await smsApi.sendMessage(deviceId, { phone: selectedSender, content: newMessage.trim() });
     setNewMessage('');
     ElMessage.success(t('sendSuccess'));
     setTimeout(() => fetchMessages(false), 1000);
     setSending(false);
   };
 
-  if (loading) {
+  const handleSelectConversation = (phone: string) => {
+    setSelectedSender(phone);
+  };
+
+  const handleNewPhoneSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const phone = newPhoneInput.trim();
+    if (phone) {
+      setSelectedSender(phone);
+      setNewPhoneInput('');
+      setShowNewPhoneInput(false);
+    }
+  };
+
+  if (loading && !selectedSender) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-white text-xl">{tCommon('loading')}</div>
@@ -143,19 +179,46 @@ export default function ConversationPage() {
             }}
           >
             <div className="p-4 border-b border-white/10">
-              <button
-                onClick={() => router.push(`/devices/${deviceId}`)}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                ← {t('backToDevice')}
-              </button>
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => router.push(`/devices/${deviceId}/messages`)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  ← {t('backToDevice')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNewPhoneInput((v) => !v)}
+                  className="px-3 py-1.5 rounded-lg text-sm text-white transition-colors"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                  }}
+                >
+                  {t('new')}
+                </button>
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                {receiverPhone === '__unknown__' ? t('unknownReceiverNumber') : receiverPhone}
+              </div>
             </div>
+            <form onSubmit={handleNewPhoneSubmit} className="p-4 border-b border-white/10">
+              <input
+                type="text"
+                value={newPhoneInput}
+                onChange={(e) => setNewPhoneInput(e.target.value)}
+                placeholder={t('newPhonePlaceholder')}
+                className="w-full px-4 py-2 rounded-lg text-white placeholder-white/50 text-sm"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                }}
+              />
+            </form>
             <ConversationList
               conversations={conversations}
-              selectedPhone={phone}
-              onSelectConversation={(selectedPhone) =>
-                router.push(`/devices/${deviceId}/messages/${encodeURIComponent(selectedPhone)}`)
-              }
+              selectedPhone={selectedSender ?? undefined}
+              onSelectConversation={handleSelectConversation}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
             />
@@ -175,8 +238,16 @@ export default function ConversationPage() {
                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               }}
             >
-              <h2 className="text-2xl font-semibold text-white">{phone}</h2>
-              <ExportButton deviceId={deviceId} phone={phone} />
+              <h2 className="text-2xl font-semibold text-white">
+                {selectedSender ?? t('noConversations')}
+              </h2>
+              {selectedSender && (
+                <ExportButton
+                  deviceId={deviceId}
+                  receiverPhone={receiverPhone}
+                  phone={selectedSender}
+                />
+              )}
             </div>
 
             <div
@@ -184,7 +255,9 @@ export default function ConversationPage() {
               className="flex-1 overflow-y-auto p-4 space-y-2"
               style={{ scrollBehavior: 'smooth' }}
             >
-              {messages.length === 0 ? (
+              {!selectedSender ? (
+                <div className="text-white/50 text-center mt-8">{t('noConversations')}</div>
+              ) : messages.length === 0 ? (
                 <div className="text-white/50 text-center mt-8">{t('noMessages')}</div>
               ) : (
                 messages.map((message) => (
@@ -200,37 +273,39 @@ export default function ConversationPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            <form
-              onSubmit={handleSendMessage}
-              className="p-4"
-              style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
-            >
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={t('placeholderMessage')}
-                  disabled={sending}
-                  className="flex-1 px-4 py-3 rounded-lg text-white placeholder-white/50"
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={sending || !newMessage.trim()}
-                  className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    backgroundColor: '#c2905e',
-                    color: '#fff',
-                  }}
-                >
-                  {sending ? t('sending') : t('send')}
-                </button>
-              </div>
-            </form>
+            {selectedSender && (
+              <form
+                onSubmit={handleSendMessage}
+                className="p-4"
+                style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder={t('placeholderMessage')}
+                    disabled={sending}
+                    className="flex-1 px-4 py-3 rounded-lg text-white placeholder-white/50"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || !newMessage.trim()}
+                    className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+                    style={{
+                      backgroundColor: '#c2905e',
+                      color: '#fff',
+                    }}
+                  >
+                    {sending ? t('sending') : t('send')}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

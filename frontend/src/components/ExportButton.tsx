@@ -6,19 +6,20 @@ import { ElMessage } from 'element-plus';
 
 interface ExportButtonProps {
   deviceId: number;
+  receiverPhone?: string;
   phone?: string;
 }
 
-export default function ExportButton({ deviceId, phone }: ExportButtonProps) {
+export default function ExportButton({ deviceId, receiverPhone, phone }: ExportButtonProps) {
   const t = useTranslations('messages');
 
   const handleExport = async () => {
-    const response = await smsApi.exportMessages(deviceId, phone);
+    const response = await smsApi.exportMessages(deviceId, receiverPhone, phone);
     const blob = new Blob([response.data], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `messages_${deviceId}_${phone || 'all'}_${Date.now()}.csv`;
+    link.download = `messages_${deviceId}_${receiverPhone || ''}_${phone || 'all'}_${Date.now()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

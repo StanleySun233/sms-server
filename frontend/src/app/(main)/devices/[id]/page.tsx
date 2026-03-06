@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
-import { parseUtcAndFormatLocal } from '@/lib/dateUtils';
+import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat } from '@/lib/dateUtils';
 import StatusIndicator from '@/components/StatusIndicator';
 import CopyButton from '@/components/CopyButton';
 
@@ -88,7 +88,7 @@ export default function DeviceDetailPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-white/70 mb-2">{t('status')}</label>
-              <StatusIndicator status={device.status} />
+              <StatusIndicator status={getDeviceStatusFromHeartbeat(device.lastHeartbeatAt)} />
             </div>
 
             <div>

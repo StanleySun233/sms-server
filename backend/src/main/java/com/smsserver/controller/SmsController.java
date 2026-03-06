@@ -29,12 +29,25 @@ public class SmsController {
         return ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
     }
 
-    @GetMapping("/devices/{id}/conversations")
-    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversations(
-            @PathVariable Long id) {
+    @GetMapping("/devices/{id}/messages/lines")
+    public ResponseEntity<ApiResponse<List<LineSummaryResponse>>> getMessageLines(@PathVariable Long id) {
         try {
             Long userId = getCurrentUserId();
-            List<ConversationResponse> conversations = smsService.getConversations(id, userId);
+            List<LineSummaryResponse> lines = smsService.getLineSummaries(id, userId);
+            return ResponseEntity.ok(ApiResponse.success(lines));
+        } catch (Exception e) {
+            log.error("Failed to get message lines", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/devices/{id}/conversations")
+    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversations(
+            @PathVariable Long id,
+            @RequestParam(required = false) String receiverPhone) {
+        try {
+            Long userId = getCurrentUserId();
+            List<ConversationResponse> conversations = smsService.getConversations(id, receiverPhone, userId);
             return ResponseEntity.ok(ApiResponse.success(conversations));
         } catch (Exception e) {
             log.error("Failed to get conversations", e);
@@ -42,19 +55,16 @@ public class SmsController {
         }
     }
 
-    /**
-     * Get messages for a specific conversation
-     * GET /api/devices/:id/messages?phone=xxx&page=1&size=50
-     */
     @GetMapping("/devices/{id}/messages")
     public ResponseEntity<ApiResponse<PagedMessagesResponse>> getConversationMessages(
             @PathVariable Long id,
             @RequestParam String phone,
+            @RequestParam(required = false) String receiverPhone,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size) {
         try {
             Long userId = getCurrentUserId();
-            var messages = smsService.getConversationMessages(id, phone, userId, page, size);
+            var messages = smsService.getConversationMessages(id, receiverPhone, phone, userId, page, size);
             return ResponseEntity.ok(ApiResponse.success(PagedMessagesResponse.from(messages)));
         } catch (Exception e) {
             log.error("Failed to get messages", e);
@@ -62,11 +72,20 @@ public class SmsController {
         }
     }
 
-    /**
-     * Send an SMS message
-     * POST /api/devices/:id/messages
-     * Body: {"phone": "xxx", "content": "xxx"}
-     */
+    @GetMapping("/devices/{id}/send-logs")
+    public ResponseEntity<ApiResponse<List<PendingSms>>> getSendLogs(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "20") int limit) {
+        try {
+            Long userId = getCurrentUserId();
+            List<PendingSms> logs = smsService.getSendLogs(id, userId, limit);
+            return ResponseEntity.ok(ApiResponse.success(logs));
+        } catch (Exception e) {
+            log.error("Failed to get send logs", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PostMapping("/devices/{id}/messages")
     public ResponseEntity<ApiResponse<PendingSms>> sendMessage(
             @PathVariable Long id,
@@ -106,6 +125,7 @@ public class SmsController {
     @GetMapping("/devices/{id}/messages/search")
     public ResponseEntity<ApiResponse<List<SmsMessage>>> searchMessages(
             @PathVariable Long id,
+            @RequestParam(required = false) String receiverPhone,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) String start_time,
@@ -115,8 +135,7 @@ public class SmsController {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime startTime = start_time != null ? LocalDateTime.parse(start_time, formatter) : null;
             LocalDateTime endTime = end_time != null ? LocalDateTime.parse(end_time, formatter) : null;
-
-            List<SmsMessage> messages = smsService.searchMessages(id, keyword, phone, startTime, endTime, userId);
+            List<SmsMessage> messages = smsService.searchMessages(id, receiverPhone, keyword, phone, startTime, endTime, userId);
             return ResponseEntity.ok(ApiResponse.success(messages));
         } catch (Exception e) {
             log.error("Failed to search messages", e);
@@ -131,11 +150,12 @@ public class SmsController {
     @GetMapping("/devices/{id}/messages/export")
     public ResponseEntity<byte[]> exportMessages(
             @PathVariable Long id,
+            @RequestParam(required = false) String receiverPhone,
             @RequestParam(required = false) String phone,
             @RequestParam(defaultValue = "csv") String format) {
         try {
             Long userId = getCurrentUserId();
-            byte[] data = smsService.exportMessages(id, phone, format, userId);
+            byte[] data = smsService.exportMessages(id, receiverPhone, phone, format, userId);
 
             String filename = "messages_" + id + "_" + System.currentTimeMillis() + ".csv";
 

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Device } from '@/lib/types';
-import { parseUtcAndFormatLocal } from '@/lib/dateUtils';
+import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat } from '@/lib/dateUtils';
 import StatusIndicator from './StatusIndicator';
 import { useRouter } from 'next/navigation';
 
@@ -27,7 +27,7 @@ export default function DeviceCard({ device }: DeviceCardProps) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-semibold text-white mb-2">{device.alias}</h3>
-          <StatusIndicator status={device.status} />
+          <StatusIndicator status={getDeviceStatusFromHeartbeat(device.lastHeartbeatAt)} />
         </div>
       </div>
 

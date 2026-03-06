@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS devices (
 CREATE TABLE IF NOT EXISTS sms_message (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     device_id BIGINT NOT NULL COMMENT 'Device that sent/received the message',
+    receiver_phone VARCHAR(20) NULL COMMENT 'SIM number that received the message',
     phone_number VARCHAR(20) NOT NULL COMMENT 'Remote phone number',
     content TEXT NOT NULL COMMENT 'Message content',
     direction ENUM('sent', 'received') NOT NULL COMMENT 'Message direction',
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS sms_message (
     read_at DATETIME(3) NULL DEFAULT NULL COMMENT 'Time when marked as read',
     FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE,
     INDEX idx_device_phone (device_id, phone_number),
+    INDEX idx_device_receiver (device_id, receiver_phone),
     INDEX idx_created_at (created_at),
     INDEX idx_read_at (read_at),
     INDEX idx_direction (direction),

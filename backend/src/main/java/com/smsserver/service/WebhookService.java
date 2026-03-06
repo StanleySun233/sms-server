@@ -91,9 +91,12 @@ public class WebhookService {
     }
 
     private void saveNewMessages(Long deviceId, List<WebhookRequest.NewMessage> messages) {
+        Device device = deviceMapper.selectById(deviceId);
+        String receiverPhone = device != null ? device.getCurrentPhoneNumber() : null;
         for (WebhookRequest.NewMessage msg : messages) {
             SmsMessage smsMessage = new SmsMessage();
             smsMessage.setDeviceId(deviceId);
+            smsMessage.setReceiverPhone(receiverPhone);
             smsMessage.setPhoneNumber(msg.getPhone());
             smsMessage.setContent(msg.getContent());
             smsMessage.setDirection("received");
