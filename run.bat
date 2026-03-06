@@ -12,4 +12,5 @@ set JWT_SECRET=your_jwt_secret_key_here_minimum_32_characters_recommended
 set SPRING_PROFILE=dev
 set SPRING_PROFILES_ACTIVE=dev
 cd /d "%~dp0"
-mvn -f backend\pom.xml spring-boot:run
+start "SMS Backend" cmd /k "mvn -f backend\pom.xml spring-boot:run"
+start "SMS Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
