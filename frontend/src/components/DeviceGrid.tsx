@@ -1,0 +1,102 @@
+'use client';
+
+import { DeviceStats } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import StatusIndicator from './StatusIndicator';
+
+interface DeviceGridProps {
+  devices: DeviceStats[];
+}
+
+export default function DeviceGrid({ devices }: DeviceGridProps) {
+  const router = useRouter();
+
+  if (devices.length === 0) {
+    return (
+      <div
+        className="rounded-2xl p-8 text-center"
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+        }}
+      >
+        <p className="text-white/70 text-lg">No devices found. Create your first device to get started!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {devices.map((device) => (
+        <div
+          key={device.id}
+          className="rounded-2xl p-6 shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+          onClick={() => router.push(`/devices/${device.id}`)}
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-2">{device.alias}</h3>
+              <StatusIndicator status={device.status} />
+            </div>
+          </div>
+
+          <div className="space-y-3 text-white/70 text-sm">
+            {device.currentPhoneNumber && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium">📱 Phone:</span>
+                <span>{device.currentPhoneNumber}</span>
+              </div>
+            )}
+
+            {device.lastHeartbeatAt && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium">💓 Last Heartbeat:</span>
+                <span className="text-xs">{new Date(device.lastHeartbeatAt).toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
+              {device.unreadMessages > 0 && (
+                <div
+                  className="flex items-center gap-2 px-3 py-1 rounded-lg"
+                  style={{
+                    backgroundColor: 'rgba(194, 144, 94, 0.3)',
+                  }}
+                >
+                  <span>💬</span>
+                  <span className="font-semibold">{device.unreadMessages}</span>
+                  <span className="text-xs">unread</span>
+                </div>
+              )}
+
+              {device.unreadCalls > 0 && (
+                <div
+                  className="flex items-center gap-2 px-3 py-1 rounded-lg"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.3)',
+                  }}
+                >
+                  <span>📞</span>
+                  <span className="font-semibold">{device.unreadCalls}</span>
+                  <span className="text-xs">missed</span>
+                </div>
+              )}
+
+              {device.unreadMessages === 0 && device.unreadCalls === 0 && (
+                <div className="text-white/50 text-sm">
+                  All caught up! ✓
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

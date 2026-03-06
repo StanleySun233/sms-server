@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(/d/code/sms-server/backend/README.md:*)",
+      "Bash(./mvnw dependency:resolve:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(/d/code/sms-server/backend/SETUP_SUMMARY.md:*)",
+      "Bash(ls:*)",
+      "Bash(chmod +x:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(mvn clean:*)",
+      "Bash(git init:*)",
+      "Bash(git remote:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(mv .gitignore:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)"
+    ]
+  }
+}
