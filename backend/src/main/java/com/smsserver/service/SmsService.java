@@ -17,12 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -333,63 +328,5 @@ public class SmsService {
         wrapper.orderByDesc(SmsMessage::getCreatedAt);
 
         return smsMessageMapper.selectList(wrapper);
-    }
-
-    /**
-     * Export messages to CSV format
-     */
-    public byte[] exportMessages(Long deviceId, String receiverPhone, String phone, String format, Long userId) {
-        deviceService.getDevice(deviceId, userId);
-        LambdaQueryWrapper<SmsMessage> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SmsMessage::getDeviceId, deviceId);
-        if (receiverPhone != null && !receiverPhone.isEmpty()) {
-            if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
-                wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
-            } else {
-                wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
-            }
-        }
-        if (phone != null && !phone.isEmpty()) {
-            wrapper.eq(SmsMessage::getPhoneNumber, phone);
-        }
-        wrapper.orderByDesc(SmsMessage::getCreatedAt);
-        List<SmsMessage> messages = smsMessageMapper.selectList(wrapper);
-
-        // Generate CSV
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             OutputStreamWriter osw = new OutputStreamWriter(baos, StandardCharsets.UTF_8);
-             PrintWriter writer = new PrintWriter(osw)) {
-
-            // Write BOM for Excel compatibility
-            baos.write(0xEF);
-            baos.write(0xBB);
-            baos.write(0xBF);
-
-            // Write header
-            writer.println("ID,Phone Number,Content,Direction,Status,Created At,Read At");
-
-            // Write data
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            for (SmsMessage message : messages) {
-                writer.printf("%d,%s,\"%s\",%s,%s,%s,%s%n",
-                        message.getId(),
-                        message.getPhoneNumber(),
-                        message.getContent().replace("\"", "\"\""), // Escape quotes
-                        message.getDirection(),
-                        message.getStatus(),
-                        message.getCreatedAt().format(formatter),
-                        message.getReadAt() != null ? message.getReadAt().format(formatter) : ""
-                );
-            }
-
-            writer.flush();
-            osw.flush();
-            log.info("Exported {} messages for device {}", messages.size(), deviceId);
-            return baos.toByteArray();
-
-        } catch (Exception e) {
-            log.error("Failed to export messages", e);
-            throw new RuntimeException("Failed to export messages: " + e.getMessage());
-        }
     }
 }

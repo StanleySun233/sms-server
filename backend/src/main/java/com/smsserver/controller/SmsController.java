@@ -8,8 +8,6 @@ import com.smsserver.service.SmsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -154,34 +152,6 @@ public class SmsController {
         } catch (Exception e) {
             log.error("Failed to search messages", e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
-    }
-
-    /**
-     * Export messages to CSV
-     * GET /api/devices/:id/messages/export?phone=xxx&format=csv
-     */
-    @GetMapping("/devices/{id}/messages/export")
-    public ResponseEntity<byte[]> exportMessages(
-            @PathVariable Long id,
-            @RequestParam(required = false) String receiverPhone,
-            @RequestParam(required = false) String phone,
-            @RequestParam(defaultValue = "csv") String format) {
-        try {
-            Long userId = getCurrentUserId();
-            byte[] data = smsService.exportMessages(id, receiverPhone, phone, format, userId);
-
-            String filename = "messages_" + id + "_" + System.currentTimeMillis() + ".csv";
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                    .header(HttpHeaders.CONTENT_ENCODING, "identity")
-                    .contentType(MediaType.parseMediaType("text/csv"))
-                    .contentLength(data.length)
-                    .body(data);
-        } catch (Exception e) {
-            log.error("Failed to export messages", e);
-            return ResponseEntity.badRequest().build();
         }
     }
 }

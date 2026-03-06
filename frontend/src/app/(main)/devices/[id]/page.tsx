@@ -164,31 +164,63 @@ export default function DeviceDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => router.push(`/devices/${device.id}/messages`)}
-              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105"
+              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105 flex flex-col items-start"
               style={{
                 backgroundColor: 'rgba(96, 165, 250, 0.12)',
                 border: '1px solid rgba(96, 165, 250, 0.22)',
               }}
             >
-              <div className="text-white text-lg font-medium mb-2">{t('receiveSms')}</div>
-              <p className="text-white/70 text-sm">{t('receiveSmsHint')}</p>
+              <div className="flex items-center gap-2 text-white text-lg font-medium mb-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="#60a5fa"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                  />
+                </svg>
+                {t('receiveSms')}
+              </div>
+              <p className="text-white/70 text-sm text-left">{t('receiveSmsHint')}</p>
             </button>
 
             <button
               onClick={() => router.push(`/devices/${device.id}/send`)}
-              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105"
+              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105 flex flex-col items-start"
               style={{
                 backgroundColor: 'rgba(194, 144, 94, 0.12)',
                 border: '1px solid rgba(194, 144, 94, 0.28)',
               }}
             >
-              <div className="text-white text-lg font-medium mb-2">{t('sendSms')}</div>
-              <p className="text-white/70 text-sm">{t('sendSmsHint')}</p>
+              <div className="flex items-center gap-2 text-white text-lg font-medium mb-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="#c2905e"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                  />
+                </svg>
+                {t('sendSms')}
+              </div>
+              <p className="text-white/70 text-sm text-left">{t('sendSmsHint')}</p>
             </button>
 
             <button
               onClick={() => router.push(`/devices/${device.id}/calls`)}
-              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105"
+              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105 flex flex-col items-start"
               style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -211,7 +243,7 @@ export default function DeviceDetailPage() {
                 </svg>
                 {t('missedCalls')}
               </div>
-              <p className="text-white/70 text-sm">{t('missedCallsHint')}</p>
+              <p className="text-white/70 text-sm text-left">{t('missedCallsHint')}</p>
             </button>
           </div>
         </div>

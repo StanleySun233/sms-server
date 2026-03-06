@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { smsApi } from '@/lib/api';
 import { ElMessage } from 'element-plus';
+import { SmsMessage } from '@/lib/types';
 
 interface ExportButtonProps {
   deviceId: number;
@@ -10,12 +11,49 @@ interface ExportButtonProps {
   phone?: string;
 }
 
+function escapeCsvCell(s: string): string {
+  if (/[",\n\r]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function formatDateTime(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toISOString().replace('T', ' ').slice(0, 19);
+}
+
+function buildCsv(messages: SmsMessage[]): string {
+  const BOM = '\uFEFF';
+  const header = 'ID,Phone Number,Content,Direction,Status,Created At,Read At';
+  const rows = messages
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .map((m) =>
+      [
+        m.id,
+        escapeCsvCell(m.phoneNumber),
+        escapeCsvCell(m.content),
+        m.direction,
+        m.status,
+        formatDateTime(m.createdAt),
+        formatDateTime(m.readAt ?? null),
+      ].join(',')
+    );
+  return BOM + header + '\n' + rows.join('\n');
+}
+
 export default function ExportButton({ deviceId, receiverPhone, phone }: ExportButtonProps) {
   const t = useTranslations('messages');
 
   const handleExport = async () => {
-    const response = await smsApi.exportMessages(deviceId, receiverPhone, phone);
-    const blob = new Blob([response.data], { type: 'text/csv' });
+    const response = await smsApi.searchMessages(deviceId, {
+      receiverPhone: receiverPhone ?? undefined,
+      phone: phone ?? undefined,
+    });
+    const list: SmsMessage[] = response.data?.data ?? [];
+    const csv = buildCsv(list);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

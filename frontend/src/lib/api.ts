@@ -120,12 +120,6 @@ export const smsApi = {
     start_time?: string;
     end_time?: string;
   }) => apiClient.get(`/devices/${deviceId}/messages/search`, { params }),
-
-  exportMessages: (deviceId: number, receiverPhone?: string, phone?: string) =>
-    apiClient.get(`/devices/${deviceId}/messages/export`, {
-      params: { receiverPhone, phone, format: 'csv' },
-      responseType: 'blob'
-    }),
 };
 
 // Missed Call API functions
