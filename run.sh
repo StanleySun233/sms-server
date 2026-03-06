@@ -133,6 +133,7 @@ echo -e "${YELLOW}[4/5] Starting Backend...${NC}"
 if container_exists "sms-backend"; then
     echo "Removing existing backend container..."
     $DOCKER rm -f sms-backend
+    echo "Existing backend container removed"
 fi
 
 echo "Starting new backend container..."
@@ -176,10 +177,11 @@ $DOCKER tag $FRONTEND_IMAGE sms-frontend:latest
 echo ""
 echo -e "${YELLOW}Starting Frontend...${NC}"
 
-# Remove existing frontend container if it exists
+# Remove existing frontend container if it exists (running or stopped)
 if container_exists "sms-frontend"; then
     echo "Removing existing frontend container..."
     $DOCKER rm -f sms-frontend
+    echo "Existing frontend container removed"
 fi
 
 echo "Starting new frontend container..."
