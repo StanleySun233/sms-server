@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
 import { SmsMessage, Conversation } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
@@ -29,10 +28,12 @@ export default function ConversationPage() {
   const [newConversationPhone, setNewConversationPhone] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [toast, setToast] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const unreadMessagesRef = useRef<Set<number>>(new Set());
+  const messagesRef = useRef<SmsMessage[]>([]);
 
   const fetchConversations = async () => {
     const response = await smsApi.getConversations(deviceId, receiverPhone);
@@ -67,13 +68,18 @@ export default function ConversationPage() {
   };
 
   const markMessagesAsRead = async (messageIds: number[]) => {
-    await smsApi.markAsRead(messageIds);
+    const current = messagesRef.current;
+    const unreadIds = messageIds.filter((id) => {
+      const msg = current.find((m) => m.id === id);
+      return msg && !msg.readAt;
+    });
+    if (unreadIds.length === 0) return;
+    await smsApi.markAsRead(unreadIds);
     setMessages((prev) =>
       prev.map((msg) =>
-        messageIds.includes(msg.id) ? { ...msg, readAt: new Date().toISOString() } : msg
+        unreadIds.includes(msg.id) ? { ...msg, readAt: new Date().toISOString() } : msg
       )
     );
-    fetchConversations();
   };
 
   useEffect(() => {
@@ -94,9 +100,22 @@ export default function ConversationPage() {
 
   useEffect(() => {
     if (!selectedSender || selectedSender === '__new__') return;
-    const interval = setInterval(() => fetchMessages(false), 5000);
+    const interval = setInterval(async () => {
+      const response = await smsApi.getMessages(deviceId, selectedSender, 1, 50, receiverPhone);
+      const data = response.data.data;
+      if (!data?.records?.length) return;
+      const records = data.records as SmsMessage[];
+      const current = messagesRef.current;
+      const newMsgs = records.filter((r) => !current.some((m) => m.id === r.id));
+      if (newMsgs.length === 0) return;
+      setMessages((prev) => [...prev, ...newMsgs.reverse()]);
+    }, 30000);
     return () => clearInterval(interval);
   }, [deviceId, receiverPhone, selectedSender]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -126,10 +145,10 @@ export default function ConversationPage() {
     const interval = setInterval(() => {
       if (unreadMessagesRef.current.size > 0) {
         const messageIds = Array.from(unreadMessagesRef.current);
-        markMessagesAsRead(messageIds);
         unreadMessagesRef.current.clear();
+        markMessagesAsRead(messageIds);
       }
-    }, 2000);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -140,7 +159,8 @@ export default function ConversationPage() {
     setSending(true);
     await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
     setNewMessage('');
-    ElMessage.success(t('sendSuccess'));
+    setToast(t('sendSuccess'));
+    setTimeout(() => setToast(''), 2000);
     if (selectedSender === '__new__') {
       setSelectedSender(phone);
       setNewConversationPhone('');
@@ -167,6 +187,18 @@ export default function ConversationPage() {
 
   return (
     <div className="h-screen flex flex-col">
+      {toast && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-white text-sm"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          {toast}
+        </div>
+      )}
       <div className="container mx-auto px-4 py-4 flex-1 flex flex-col overflow-hidden">
         <div className="flex gap-4 h-full">
           <div
