@@ -5,6 +5,7 @@ import Providers from '@/components/Providers';
 export const metadata: Metadata = {
   title: '短信服务管理',
   description: '管理短信设备与消息',
+  icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({
