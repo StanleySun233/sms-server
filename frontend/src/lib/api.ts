@@ -60,6 +60,12 @@ export const authApi = {
   logout: () => apiClient.post('/auth/logout'),
 
   getCurrentUser: () => apiClient.get('/auth/me'),
+
+  updateProfile: (data: { email: string }) =>
+    apiClient.put('/auth/me', data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    apiClient.put('/auth/password', data),
 };
 
 // Device API functions

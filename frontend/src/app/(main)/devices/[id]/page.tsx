@@ -49,7 +49,10 @@ export default function DeviceDetailPage() {
 
   if (!device) return null;
 
-  const webhookUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/webhook/${device.webhookToken}`;
+  const webhookUrl =
+    (typeof window !== 'undefined' ? window.location.origin : '') +
+    '/api/webhook/' +
+    device.webhookToken;
 
   return (
     <div className="container mx-auto px-4 py-8">

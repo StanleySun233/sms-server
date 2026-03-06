@@ -29,7 +29,9 @@ export default function NewDevicePage() {
   };
 
   const webhookUrl = createdDevice
-    ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/webhook/${createdDevice.webhookToken}`
+    ? (typeof window !== 'undefined' ? window.location.origin : '') +
+      '/api/webhook/' +
+      createdDevice.webhookToken
     : '';
 
   if (createdDevice) {

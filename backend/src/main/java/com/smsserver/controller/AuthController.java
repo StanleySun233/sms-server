@@ -1,7 +1,9 @@
 package com.smsserver.controller;
 
+import com.smsserver.dto.ChangePasswordRequest;
 import com.smsserver.dto.LoginRequest;
 import com.smsserver.dto.RegisterRequest;
+import com.smsserver.dto.UpdateProfileRequest;
 import com.smsserver.dto.UserResponse;
 import com.smsserver.entity.User;
 import com.smsserver.service.AuthService;
@@ -51,5 +53,25 @@ public class AuthController {
             return ResponseEntity.status(401).body("Not authenticated");
         }
         return ResponseEntity.ok(UserResponse.fromEntity((User) principal));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal == null || !(principal instanceof User)) {
+            return ResponseEntity.status(401).body("Not authenticated");
+        }
+        User user = authService.updateProfile(((User) principal).getId(), request.getEmail());
+        return ResponseEntity.ok(UserResponse.fromEntity(user));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal == null || !(principal instanceof User)) {
+            return ResponseEntity.status(401).body("Not authenticated");
+        }
+        authService.changePassword(((User) principal).getId(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Password updated"));
     }
 }

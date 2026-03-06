@@ -8,6 +8,7 @@ const navItems = [
   { href: '/dashboard', label: '仪表盘' },
   { href: '/devices', label: '设备列表' },
   { href: '/devices/new', label: '新建设备' },
+  { href: '/settings', label: '个人设置' },
 ];
 
 export default function NavBar() {
@@ -17,6 +18,7 @@ export default function NavBar() {
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
     if (href === '/devices/new') return pathname === '/devices/new';
+    if (href === '/settings') return pathname === '/settings';
     return pathname === '/devices' || (pathname.startsWith('/devices/') && !pathname.startsWith('/devices/new'));
   };
 
