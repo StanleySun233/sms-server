@@ -102,9 +102,6 @@ return {
     -- SIM 卡 pin 码
     PIN_CODE = "",
     --
-    -- 短信指令白名单, 只有来自这些号码的短信才能触发转发指令
-    SMS_CMD_ALLOWED_SENDERS = { "17717414860" },
-    --
     -- SMS 服务端地址, 如 https://your-server.com 或 http://192.168.1.100:8080, 留空关闭心跳上报
     SMS_SERVER_URL = "",
     --

@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # MySQL Database
   mysql:
     image: mysql:8.0
     container_name: sms-mysql
@@ -14,9 +13,9 @@ services:
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - mysql-data:/var/lib/mysql
-      - ./backups:/backups
+      - ../backups:/backups
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -40,7 +39,6 @@ services:
           cpus: '1'
           memory: 1G
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: sms-redis
@@ -72,10 +70,9 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Spring Boot Backend (Build from source for development)
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     container_name: sms-backend
     restart: unless-stopped
@@ -93,7 +90,7 @@ services:
     ports:
       - "${BACKEND_PORT}:8080"
     volumes:
-      - ./backend/src:/app/src
+      - ../backend/src:/app/src
     depends_on:
       mysql:
         condition: service_healthy
@@ -108,10 +105,9 @@ services:
       retries: 3
       start_period: 60s
 
-  # Next.js Frontend (Build from source for development)
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api}
@@ -122,8 +118,8 @@ services:
     ports:
       - "${FRONTEND_PORT}:3000"
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
+      - ../frontend/src:/app/src
+      - ../frontend/public:/app/public
     depends_on:
       - backend
     networks:
@@ -134,7 +130,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: sms-nginx
@@ -143,8 +138,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - frontend
       - backend

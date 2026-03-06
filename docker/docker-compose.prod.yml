@@ -1,20 +1,18 @@
 version: '3.8'
 
-# Production overrides for docker-compose.yml
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Usage from project root: docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d
 
 services:
   mysql:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - mysql-data:/var/lib/mysql
-      - ./backups:/backups
+      - ../backups:/backups
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
-      --max-connections=200
       --slow-query-log=1
       --slow-query-log-file=/var/log/mysql/slow.log
       --long-query-time=2
@@ -81,8 +79,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     deploy:
       resources:

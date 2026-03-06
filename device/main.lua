@@ -107,40 +107,7 @@ sms.setNewSmsCb(function(sender_number, sms_content, m)
     local iso_ts = string.format("%04d-%02d-%02dT%02d:%02d:%02d", m.year + 2000, m.mon, m.day, m.hour, m.min, m.sec)
     log.info("smsCallback", time, sender_number, sms_content)
     util_webhook.addNewMessage(sender_number, sms_content, iso_ts)
-
-    -- 短信控制
-    local is_sms_ctrl = false
-    local receiver_number, sms_content_to_be_sent = sms_content:match("^SMS,(+?%d+),(.+)$")
-    receiver_number, sms_content_to_be_sent = receiver_number or "", sms_content_to_be_sent or ""
-    if sms_content_to_be_sent ~= "" and receiver_number ~= "" and #receiver_number >= 5 and #receiver_number <= 20 then
-        sms.send(receiver_number, sms_content_to_be_sent)
-        is_sms_ctrl = true
-    end
-
-    -- 指令转发: 仅允许白名单号码的特定格式短信
-    -- 格式: 【{手机号}】{内容}
-    local clean_sender = sender_number:gsub("^%+?86", "")
-    local sender_allowed = false
-    for _, v in ipairs(config.SMS_CMD_ALLOWED_SENDERS or {}) do
-        if v == clean_sender then sender_allowed = true; break end
-    end
-    if sender_allowed then
-        local target_number, send_content = sms_content:match("^%[(.-)%](.+)$")
-        if not target_number then
-            target_number, send_content = sms_content:match("^【(.-)】(.+)$")
-        end
-        if target_number then target_number = target_number:gsub("%s", "") end
-        if send_content and target_number and #target_number >= 5 and #target_number <= 20 then
-            log.info("smsCmd", "转发短信", target_number, send_content)
-            log.info("smsCmd", "target_number hex", target_number:toHex())
-            log.info("smsCmd", "send_content hex", send_content:toHex())
-            sms.send(target_number, send_content)
-            is_sms_ctrl = true
-        end
-    end
-
-    -- 发送通知
-    util_notify.add({ sms_content, "", "发件号码: " .. sender_number, "发件时间: " .. time, "#SMS" .. (is_sms_ctrl and " #CTRL" or "") })
+    util_notify.add({ sms_content, "", "发件号码: " .. sender_number, "发件时间: " .. time, "#SMS" })
 end)
 
 sys.taskInit(function()

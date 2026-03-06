@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # MySQL Database
   mysql:
     image: mysql:8.0
     container_name: sms-mysql
@@ -14,9 +13,9 @@ services:
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - mysql-data:/var/lib/mysql
-      - ./backups:/backups
+      - ../backups:/backups
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -40,7 +39,6 @@ services:
           cpus: '1'
           memory: 1G
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: sms-redis
@@ -72,7 +70,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Spring Boot Backend
   backend:
     image: ghcr.io/stanleysun233/sms-server-backend:${BACKEND_TAG:-latest}
     container_name: sms-backend
@@ -104,7 +101,6 @@ services:
       retries: 3
       start_period: 60s
 
-  # Next.js Frontend
   frontend:
     image: ghcr.io/stanleysun233/sms-server-frontend:${FRONTEND_TAG:-latest}
     container_name: sms-frontend
@@ -125,7 +121,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: sms-nginx
@@ -134,8 +129,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - frontend
       - backend
