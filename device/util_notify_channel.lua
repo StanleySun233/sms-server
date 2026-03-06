@@ -306,6 +306,18 @@ return {
         return 400, nil, result.message
     end,
 
+    -- 发送到 webui (WEBUI_WEBHOOK_URL；心跳也属于 webui，NOTIFY_TYPE 含 webui 时才启用心跳)
+    ["webui"] = function(msg)
+        if config.WEBUI_WEBHOOK_URL == nil or config.WEBUI_WEBHOOK_URL == "" then
+            log.error("util_notify", "未配置 `config.WEBUI_WEBHOOK_URL`")
+            return nil, nil, nil
+        end
+        local header = { ["Content-Type"] = "application/json; charset=utf-8" }
+        local body = { content = msg }
+        log.info("util_notify", "POST", config.WEBUI_WEBHOOK_URL, "webui")
+        return util_http.fetch(nil, "POST", config.WEBUI_WEBHOOK_URL, header, json.encode(body))
+    end,
+
     -- 发送到 serial
     ["serial"] = function(msg)
         uart.write(1, msg)

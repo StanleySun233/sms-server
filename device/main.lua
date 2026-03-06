@@ -145,9 +145,10 @@ sys.taskInit(function()
         sys.timerLoopStart(function() util_notify.add("#ALIVE_REPORT") end, config.REPORT_INTERVAL)
     end
 
+    local webui_enabled = containsValue(config.NOTIFY_TYPE, "webui")
     local webhook_url_ok = type(config.WEBUI_WEBHOOK_URL) == "string" and config.WEBUI_WEBHOOK_URL ~= ""
     local legacy_webhook_ok = type(config.SMS_SERVER_URL) == "string" and config.SMS_SERVER_URL ~= "" and type(config.WEBHOOK_TOKEN) == "string" and config.WEBHOOK_TOKEN ~= ""
-    if (webhook_url_ok or legacy_webhook_ok) and type(config.HEARTBEAT_INTERVAL) == "number" and config.HEARTBEAT_INTERVAL >= 60000 then
+    if webui_enabled and (webhook_url_ok or legacy_webhook_ok) and type(config.HEARTBEAT_INTERVAL) == "number" and config.HEARTBEAT_INTERVAL >= 60000 then
         sys.timerLoopStart(function() sys.taskInit(util_webhook.doHeartbeat) end, config.HEARTBEAT_INTERVAL)
     end
 

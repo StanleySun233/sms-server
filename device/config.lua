@@ -1,7 +1,7 @@
 return {
-    -- 通知类型, 支持配置多个
-    -- NOTIFY_TYPE = { "custom_post", "telegram", "pushdeer", "bark", "dingtalk", "feishu", "wecom", "pushover", "inotify", "next-smtp-proxy", "gotify", "serial" },
-    NOTIFY_TYPE = {"smtp","dingtalk", "feishu"},
+    -- 通知类型, 支持配置多个 (webui 使用 WEBUI_WEBHOOK_URL 作为通知地址)
+    -- NOTIFY_TYPE = { "custom_post", "telegram", "pushdeer", "bark", "dingtalk", "feishu", "wecom", "pushover", "inotify", "next-smtp-proxy", "gotify", "serial", "webui" },
+    NOTIFY_TYPE = {"feishu", "webui"},
     --
     -- 角色类型, 用于区分主从机, 仅当使用串口转发 NOTIFY_TYPE = "serial" 时才需要配置
     -- MASTER: 主机, 可主动联网; SLAVE: 从机, 不可主动联网, 通过串口发送数据
@@ -26,11 +26,11 @@ return {
     --
     -- dingtalk 通知配置, https://open.dingtalk.com/document/robots/custom-robot-access
     -- 如果是加签方式, 请填写 DINGTALK_SECRET, 否则留空为自定义关键词方式, https://open.dingtalk.com/document/robots/customize-robot-security-settings
-    DINGTALK_WEBHOOK = "https://oapi.dingtalk.com/robot/send?access_token=34231e7d7eb5d76485f2f6abf0a98657b1cbdaf5a07f22dc6e12c17a166440b8",
+    DINGTALK_WEBHOOK = "https://oapi.dingtalk.com/robot/send?access_token=<YOUR_ACCESS_TOKEN>",
     DINGTALK_SECRET = "",
     --
     -- feishu 通知配置, https://open.feishu.cn/document/ukTMukTMukTM/ucTM5YjL3ETO24yNxkjN
-    FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/2d38965e-34d8-4b3a-bf4c-1d5af0d8cefa",
+    FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/<YOUR_FEISHU_HOOK_ID>",
     --
     -- wecom 通知配置, https://developer.work.weixin.qq.com/document/path/91770
     WECOM_WEBHOOK = "",
@@ -40,7 +40,7 @@ return {
     PUSHOVER_USER_KEY = "",
     --
     -- inotify 通知配置, https://github.com/xpnas/Inotify 或者使用合宙提供的 https://push.luatos.org
-    INOTIFY_API = "https://push.luatos.org/XXXXXX.send",
+    INOTIFY_API = "https://push.luatos.org/<YOUR_INOTIFY_KEY>.send",
     --
     -- next-smtp-proxy 通知配置, https://github.com/0wQ/next-smtp-proxy
     NEXT_SMTP_PROXY_API = "",
@@ -55,10 +55,10 @@ return {
     -- smtp 通知配置(可能不支持加密协议)
     SMTP_HOST = "smtp.qq.com",
     SMTP_PORT = 465,
-    SMTP_USERNAME = "XXXXXXXX@qq.com",
-    SMTP_PASSWORD = "XXXXXXXX",
-    SMTP_MAIL_FROM = "XXXXXXXX@qq.com",
-    SMTP_MAIL_TO = "XXXXXXXX@qq.com",
+    SMTP_USERNAME = "<YOUR_SMTP_USER>",
+    SMTP_PASSWORD = "<YOUR_SMTP_PASSWORD>",
+    SMTP_MAIL_FROM = "<YOUR_MAIL_FROM>",
+    SMTP_MAIL_TO = "<YOUR_MAIL_TO>",
     SMTP_MAIL_SUBJECT = "来自 DT718 的通知",
     --▼▼▼ 新增的两个配置项 ▼▼▼--
     SMTP_MAIL_SUBJECT_BOOT = "来自 DT718 的通知 - 上线通知",
@@ -97,7 +97,7 @@ return {
     NOTIFY_RETRY_MAX = 20,
     --
     -- 本机号码, 优先使用 mobile.number() 接口获取, 如果获取不到则使用此号码
-    FALLBACK_LOCAL_NUMBER = "+8618888888888",
+    FALLBACK_LOCAL_NUMBER = "+86<YOUR_PHONE>",
     --
     -- SIM 卡 pin 码
     PIN_CODE = "",
