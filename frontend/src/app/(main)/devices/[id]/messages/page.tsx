@@ -35,12 +35,12 @@ export default function MessagesPage() {
     router.push(`/devices/${deviceId}/messages/${encodeURIComponent(receiverPhone)}`);
   };
 
-  const unknownLabel = t('unknownReceiverNumber');
+  const noReceiverLabel = t('noReceiver');
+  const lineDisplayLabel = (receiverPhone: string) =>
+    receiverPhone === '__unknown__' || receiverPhone === 'none' ? noReceiverLabel : receiverPhone;
   const filteredLines = lines.filter(
     (line) =>
-      (line.receiverPhone === '__unknown__' ? unknownLabel : line.receiverPhone)
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
+      lineDisplayLabel(line.receiverPhone).toLowerCase().includes(searchQuery.toLowerCase()) ||
       (line.lastMessage || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -107,7 +107,7 @@ export default function MessagesPage() {
                   >
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-medium text-white">
-                        {line.receiverPhone === '__unknown__' ? unknownLabel : line.receiverPhone}
+                        {lineDisplayLabel(line.receiverPhone)}
                       </span>
                       {line.unreadCount > 0 && (
                         <span

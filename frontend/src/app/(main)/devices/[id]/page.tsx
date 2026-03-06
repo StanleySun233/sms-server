@@ -107,21 +107,17 @@ export default function DeviceDetailPage() {
               <CopyButton text={webhookUrl} label={tCommon('copyUrl')} />
             </div>
 
-            {device.currentPhoneNumber && (
-              <div>
-                <label className="block text-white/70 mb-2">{t('currentNumber')}</label>
-                <div className="text-white text-lg">{device.currentPhoneNumber}</div>
-              </div>
-            )}
+            <div>
+              <label className="block text-white/70 mb-2">{t('currentNumber')}</label>
+              <div className="text-white text-lg">{device.currentPhoneNumber || t('neverOnline')}</div>
+            </div>
 
-            {device.lastHeartbeatAt && (
-              <div>
-                <label className="block text-white/70 mb-2">{t('lastHeartbeat')}</label>
-                <div className="text-white text-lg">
-                  {parseUtcAndFormatLocal(device.lastHeartbeatAt)}
-                </div>
+            <div>
+              <label className="block text-white/70 mb-2">{t('lastHeartbeat')}</label>
+              <div className="text-white text-lg">
+                {device.lastHeartbeatAt ? parseUtcAndFormatLocal(device.lastHeartbeatAt) : t('neverOnline')}
               </div>
-            )}
+            </div>
 
             <div>
               <label className="block text-white/70 mb-2">{t('createdAt')}</label>

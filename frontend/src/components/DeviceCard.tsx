@@ -32,17 +32,13 @@ export default function DeviceCard({ device }: DeviceCardProps) {
       </div>
 
       <div className="space-y-2 text-white/70 text-sm">
-        {device.currentPhoneNumber && (
-          <div>
-            <span className="font-medium">{t('phone')}：</span> {device.currentPhoneNumber}
-          </div>
-        )}
-        {device.lastHeartbeatAt && (
-          <div>
-            <span className="font-medium">{t('lastHeartbeatLabel')}</span>{' '}
-            {parseUtcAndFormatLocal(device.lastHeartbeatAt)}
-          </div>
-        )}
+        <div>
+          <span className="font-medium">{t('phone')}：</span> {device.currentPhoneNumber || t('neverOnline')}
+        </div>
+        <div>
+          <span className="font-medium">{t('heartbeatLabel')}</span>{' '}
+          {device.lastHeartbeatAt ? parseUtcAndFormatLocal(device.lastHeartbeatAt) : t('neverOnline')}
+        </div>
         <div>
           <span className="font-medium">{t('createdLabel')}</span>{' '}
           {new Date(device.createdAt).toLocaleDateString()}

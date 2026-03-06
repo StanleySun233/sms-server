@@ -126,11 +126,13 @@
     "nameRequired": "Please enter a device name",
     "webhookImportant": "Important: Save this webhook token securely. You need to configure it in your 4G device app.",
     "phone": "Phone",
+    "heartbeatLabel": "Heartbeat:",
     "lastHeartbeatLabel": "Last Heartbeat:",
+    "neverOnline": "Never online",
     "createdLabel": "Created:",
     "unread": "unread",
     "missed": "missed",
-    "allCaughtUp": "All caught up! ✓"
+    "allCaughtUp": "No unread messages"
   },
   "messages": {
     "title": "SMS",
@@ -148,6 +150,7 @@
     "noLines": "No phone numbers have been used on this device",
     "loadLinesFailed": "Failed to load lines",
     "unknownReceiverNumber": "Unknown receiver number",
+    "noReceiver": "No receiver",
     "noMessages": "No messages yet",
     "placeholderMessage": "Type a message...",
     "send": "Send",

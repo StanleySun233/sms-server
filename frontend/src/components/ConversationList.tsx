@@ -10,6 +10,8 @@ interface ConversationListProps {
   onSelectConversation: (phone: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  prependEmptyRow?: boolean;
+  onSelectEmptyRow?: () => void;
 }
 
 export default function ConversationList({
@@ -18,6 +20,8 @@ export default function ConversationList({
   onSelectConversation,
   searchQuery,
   onSearchChange,
+  prependEmptyRow,
+  onSelectEmptyRow,
 }: ConversationListProps) {
   const t = useTranslations('messages');
   const { locale } = useLocale();
@@ -47,7 +51,23 @@ export default function ConversationList({
 
       {/* 会话列表 */}
       <div className="flex-1 overflow-y-auto">
-        {filteredConversations.length === 0 ? (
+        {prependEmptyRow && onSelectEmptyRow && (
+          <div
+            onClick={onSelectEmptyRow}
+            className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
+            style={{
+              backgroundColor: selectedPhone === '__new__' ? 'rgba(194, 144, 94, 0.2)' : 'transparent',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <div className="flex justify-between items-start mb-1">
+              <span className="font-medium text-white/50">&nbsp;</span>
+            </div>
+            <div className="text-sm text-white/70 truncate">&nbsp;</div>
+            <div className="text-xs text-white/50 mt-1">&nbsp;</div>
+          </div>
+        )}
+        {filteredConversations.length === 0 && !prependEmptyRow ? (
           <div className="p-4 text-white/50 text-center">{t('noConversations')}</div>
         ) : (
           filteredConversations.map((conversation) => (

@@ -126,11 +126,13 @@
     "nameRequired": "请输入设备名称",
     "webhookImportant": "重要：请妥善保存此 Webhook 令牌，需在 4G 设备应用中配置。",
     "phone": "号码",
+    "heartbeatLabel": "心跳：",
     "lastHeartbeatLabel": "最后心跳：",
+    "neverOnline": "从未上线",
     "createdLabel": "创建时间：",
     "unread": "未读",
     "missed": "未接",
-    "allCaughtUp": "已全部处理 ✓"
+    "allCaughtUp": "无未读消息"
   },
   "messages": {
     "title": "短信",
@@ -148,6 +150,7 @@
     "noLines": "该设备暂无上线过的手机号",
     "loadLinesFailed": "加载线路失败",
     "unknownReceiverNumber": "未知接收号码",
+    "noReceiver": "无接收人",
     "noMessages": "暂无消息",
     "placeholderMessage": "输入消息...",
     "send": "发送",

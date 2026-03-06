@@ -25,8 +25,8 @@ export default function ConversationPage() {
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showNewPhoneInput, setShowNewPhoneInput] = useState(false);
-  const [newPhoneInput, setNewPhoneInput] = useState('');
+  const [showNewRow, setShowNewRow] = useState(false);
+  const [newConversationPhone, setNewConversationPhone] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -81,7 +81,7 @@ export default function ConversationPage() {
   }, [deviceId, receiverPhone]);
 
   useEffect(() => {
-    if (selectedSender) {
+    if (selectedSender && selectedSender !== '__new__') {
       setLoading(true);
       setMessages([]);
       setPage(1);
@@ -93,7 +93,7 @@ export default function ConversationPage() {
   }, [deviceId, receiverPhone, selectedSender]);
 
   useEffect(() => {
-    if (!selectedSender) return;
+    if (!selectedSender || selectedSender === '__new__') return;
     const interval = setInterval(() => fetchMessages(false), 5000);
     return () => clearInterval(interval);
   }, [deviceId, receiverPhone, selectedSender]);
@@ -135,27 +135,26 @@ export default function ConversationPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSender || !newMessage.trim() || sending) return;
+    const phone = selectedSender === '__new__' ? newConversationPhone.trim() : selectedSender;
+    if (!phone || !newMessage.trim() || sending) return;
     setSending(true);
-    await smsApi.sendMessage(deviceId, { phone: selectedSender, content: newMessage.trim() });
+    await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
     setNewMessage('');
     ElMessage.success(t('sendSuccess'));
-    setTimeout(() => fetchMessages(false), 1000);
+    if (selectedSender === '__new__') {
+      setSelectedSender(phone);
+      setNewConversationPhone('');
+      setShowNewRow(false);
+      fetchConversations();
+    } else {
+      setTimeout(() => fetchMessages(false), 1000);
+    }
     setSending(false);
   };
 
   const handleSelectConversation = (phone: string) => {
     setSelectedSender(phone);
-  };
-
-  const handleNewPhoneSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const phone = newPhoneInput.trim();
-    if (phone) {
-      setSelectedSender(phone);
-      setNewPhoneInput('');
-      setShowNewPhoneInput(false);
-    }
+    if (phone !== '__new__') setShowNewRow(false);
   };
 
   if (loading && !selectedSender) {
@@ -188,7 +187,10 @@ export default function ConversationPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowNewPhoneInput((v) => !v)}
+                  onClick={() => {
+                    setShowNewRow(true);
+                    setSelectedSender('__new__');
+                  }}
                   className="px-3 py-1.5 rounded-lg text-sm text-white transition-colors"
                   style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -199,28 +201,17 @@ export default function ConversationPage() {
                 </button>
               </div>
               <div className="text-xs text-white/50 mt-1">
-                {receiverPhone === '__unknown__' ? t('unknownReceiverNumber') : receiverPhone}
+                {(receiverPhone === '__unknown__' || receiverPhone === 'none') ? t('noReceiver') : receiverPhone}
               </div>
             </div>
-            <form onSubmit={handleNewPhoneSubmit} className="p-4 border-b border-white/10">
-              <input
-                type="text"
-                value={newPhoneInput}
-                onChange={(e) => setNewPhoneInput(e.target.value)}
-                placeholder={t('newPhonePlaceholder')}
-                className="w-full px-4 py-2 rounded-lg text-white placeholder-white/50 text-sm"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                }}
-              />
-            </form>
             <ConversationList
               conversations={conversations}
               selectedPhone={selectedSender ?? undefined}
               onSelectConversation={handleSelectConversation}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
+              prependEmptyRow={showNewRow}
+              onSelectEmptyRow={() => setSelectedSender('__new__')}
             />
           </div>
 
@@ -233,15 +224,29 @@ export default function ConversationPage() {
             }}
           >
             <div
-              className="p-4 flex justify-between items-center"
+              className="p-4 flex justify-between items-center gap-2"
               style={{
                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               }}
             >
-              <h2 className="text-2xl font-semibold text-white">
-                {selectedSender ?? t('noConversations')}
-              </h2>
-              {selectedSender && (
+              {selectedSender === '__new__' ? (
+                <input
+                  type="text"
+                  value={newConversationPhone}
+                  onChange={(e) => setNewConversationPhone(e.target.value)}
+                  placeholder={t('newPhonePlaceholder')}
+                  className="flex-1 min-w-0 px-4 py-2 rounded-lg text-white placeholder-white/50 text-2xl font-semibold"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                  }}
+                />
+              ) : (
+                <h2 className="text-2xl font-semibold text-white">
+                  {selectedSender ?? t('noConversations')}
+                </h2>
+              )}
+              {selectedSender && selectedSender !== '__new__' && (
                 <ExportButton
                   deviceId={deviceId}
                   receiverPhone={receiverPhone}
@@ -255,8 +260,10 @@ export default function ConversationPage() {
               className="flex-1 overflow-y-auto p-4 space-y-2"
               style={{ scrollBehavior: 'smooth' }}
             >
-              {!selectedSender ? (
-                <div className="text-white/50 text-center mt-8">{t('noConversations')}</div>
+              {!selectedSender || selectedSender === '__new__' ? (
+                <div className="text-white/50 text-center mt-8">
+                  {selectedSender === '__new__' ? t('noMessages') : t('noConversations')}
+                </div>
               ) : messages.length === 0 ? (
                 <div className="text-white/50 text-center mt-8">{t('noMessages')}</div>
               ) : (
@@ -273,7 +280,7 @@ export default function ConversationPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {selectedSender && (
+            {selectedSender ? (
               <form
                 onSubmit={handleSendMessage}
                 className="p-4"
@@ -294,7 +301,7 @@ export default function ConversationPage() {
                   />
                   <button
                     type="submit"
-                    disabled={sending || !newMessage.trim()}
+                    disabled={sending || !newMessage.trim() || (selectedSender === '__new__' && !newConversationPhone.trim())}
                     className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
                     style={{
                       backgroundColor: '#c2905e',
@@ -305,7 +312,7 @@ export default function ConversationPage() {
                   </button>
                 </div>
               </form>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

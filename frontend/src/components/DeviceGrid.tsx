@@ -50,19 +50,15 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
           </div>
 
           <div className="space-y-3 text-white/70 text-sm">
-            {device.currentPhoneNumber && (
-              <div className="flex items-center gap-2">
-                <span className="font-medium">📱 {t('phone')}：</span>
-                <span>{device.currentPhoneNumber}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="font-medium">📱 {t('phone')}：</span>
+              <span>{device.currentPhoneNumber || t('neverOnline')}</span>
+            </div>
 
-            {device.lastHeartbeatAt && (
-              <div className="flex items-center gap-2">
-                <span className="font-medium">💓 {t('lastHeartbeatLabel')}</span>
-                <span className="text-xs">{parseUtcAndFormatLocal(device.lastHeartbeatAt)}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="font-medium">💓 {t('heartbeatLabel')}</span>
+              <span>{device.lastHeartbeatAt ? parseUtcAndFormatLocal(device.lastHeartbeatAt) : t('neverOnline')}</span>
+            </div>
 
             <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
               {device.unreadMessages > 0 && (

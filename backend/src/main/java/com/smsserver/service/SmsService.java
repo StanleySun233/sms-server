@@ -90,7 +90,7 @@ public class SmsService {
         }
         LambdaQueryWrapper<SmsMessage> nullReceiverWrapper = new LambdaQueryWrapper<>();
         nullReceiverWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                .isNull(SmsMessage::getReceiverPhone)
+                .and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""))
                 .orderByDesc(SmsMessage::getCreatedAt)
                 .last("LIMIT 1");
         SmsMessage unknownLast = smsMessageMapper.selectOne(nullReceiverWrapper);
@@ -101,11 +101,30 @@ public class SmsService {
             unknownSummary.setLastMessageTime(unknownLast.getCreatedAt());
             LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
             unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                    .isNull(SmsMessage::getReceiverPhone)
+                    .and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""))
                     .eq(SmsMessage::getDirection, "received")
                     .isNull(SmsMessage::getReadAt);
             unknownSummary.setUnreadCount(smsMessageMapper.selectCount(unreadWrapper).intValue());
             result.add(unknownSummary);
+        }
+        LambdaQueryWrapper<SmsMessage> noneReceiverWrapper = new LambdaQueryWrapper<>();
+        noneReceiverWrapper.eq(SmsMessage::getDeviceId, deviceId)
+                .eq(SmsMessage::getReceiverPhone, "none")
+                .orderByDesc(SmsMessage::getCreatedAt)
+                .last("LIMIT 1");
+        SmsMessage noneLast = smsMessageMapper.selectOne(noneReceiverWrapper);
+        if (noneLast != null) {
+            LineSummaryResponse noneSummary = new LineSummaryResponse();
+            noneSummary.setReceiverPhone("none");
+            noneSummary.setLastMessage(noneLast.getContent());
+            noneSummary.setLastMessageTime(noneLast.getCreatedAt());
+            LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
+            unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
+                    .eq(SmsMessage::getReceiverPhone, "none")
+                    .eq(SmsMessage::getDirection, "received")
+                    .isNull(SmsMessage::getReadAt);
+            noneSummary.setUnreadCount(smsMessageMapper.selectCount(unreadWrapper).intValue());
+            result.add(noneSummary);
         }
         result.sort((a, b) -> {
             LocalDateTime ta = a.getLastMessageTime();
@@ -129,7 +148,7 @@ public class SmsService {
         wrapper.eq(SmsMessage::getDeviceId, deviceId).orderByDesc(SmsMessage::getCreatedAt);
         if (receiverPhone != null && !receiverPhone.isEmpty()) {
             if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
-                wrapper.isNull(SmsMessage::getReceiverPhone);
+                wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
             } else {
                 wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
             }
@@ -171,7 +190,7 @@ public class SmsService {
                 .orderByDesc(SmsMessage::getCreatedAt);
         if (receiverPhone != null && !receiverPhone.isEmpty()) {
             if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
-                wrapper.isNull(SmsMessage::getReceiverPhone);
+                wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
             } else {
                 wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
             }
@@ -254,7 +273,7 @@ public class SmsService {
         wrapper.eq(SmsMessage::getDeviceId, deviceId);
         if (receiverPhone != null && !receiverPhone.isEmpty()) {
             if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
-                wrapper.isNull(SmsMessage::getReceiverPhone);
+                wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
             } else {
                 wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
             }
@@ -288,7 +307,7 @@ public class SmsService {
         wrapper.eq(SmsMessage::getDeviceId, deviceId);
         if (receiverPhone != null && !receiverPhone.isEmpty()) {
             if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
-                wrapper.isNull(SmsMessage::getReceiverPhone);
+                wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
             } else {
                 wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
             }
