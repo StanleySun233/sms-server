@@ -1,11 +1,11 @@
 @echo off
-set MYSQL_HOST=45.207.211.30
+set MYSQL_HOST=localhost
 set MYSQL_DATABASE=sms_server
 set MYSQL_USER=smsadmin
-set MYSQL_PASSWORD=Password@sms
+set MYSQL_PASSWORD=your_secure_password_here
 set MYSQL_PORT=3306
-set REDIS_HOST=45.207.211.30
-set REDIS_PASSWORD=Password@redis
+set REDIS_HOST=localhost
+set REDIS_PASSWORD=
 set REDIS_PORT=6379
 set BACKEND_PORT=8080
 set JWT_SECRET=your_jwt_secret_key_here_minimum_32_characters_recommended

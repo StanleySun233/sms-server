@@ -117,16 +117,16 @@ CREATE TABLE IF NOT EXISTS sim_change_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='SIM card change history';
 
 -- =====================================================
--- Insert demo user (password: demo123)
--- BCrypt hash generated with strength 10
+-- Table: user_preferences
+-- Description: User preferences
 -- =====================================================
--- INSERT INTO users (username, password_hash, email) VALUES
--- ('demo', '$2a$10$XYZ...', 'demo@example.com');
-
--- =====================================================
--- Performance optimization recommendations:
--- 1. Monitor slow queries with slow_query_log
--- 2. Add composite indexes based on actual query patterns
--- 3. Consider partitioning sms_message by created_at for large datasets
--- 4. Regular ANALYZE TABLE to update statistics
--- =====================================================
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL COMMENT 'User ID',
+    pref_key VARCHAR(50) NOT NULL COMMENT 'Preference key e.g. locale',
+    pref_value VARCHAR(255) NOT NULL COMMENT 'Preference value e.g. zh',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_user_pref (user_id, pref_key),
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='User preferences';

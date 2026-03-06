@@ -20,7 +20,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: stanleysun233/sms-server-frontend
+  IMAGE_NAME: ${{ github.repository_owner }}/sms-server-frontend
 
 jobs:
   build-and-push:
