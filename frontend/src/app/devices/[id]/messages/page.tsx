@@ -22,6 +22,7 @@ export default function MessagesPage() {
     // Auto-refresh every 10 seconds
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId]);
 
   const fetchConversations = async () => {

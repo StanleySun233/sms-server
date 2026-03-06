@@ -29,6 +29,7 @@ export default function CallHistoryPage() {
 
   useEffect(() => {
     fetchCalls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId, phone]);
 
   const handleMarkAsRead = async (callId: number) => {

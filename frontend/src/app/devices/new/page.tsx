@@ -76,7 +76,7 @@ export default function NewDevicePage() {
 
             <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
               <p className="text-yellow-200 text-sm">
-                <strong>Important:</strong> Save this webhook token securely. You'll need to configure it in your 4G device app.
+                <strong>Important:</strong> Save this webhook token securely. You&apos;ll need to configure it in your 4G device app.
               </p>
             </div>
 

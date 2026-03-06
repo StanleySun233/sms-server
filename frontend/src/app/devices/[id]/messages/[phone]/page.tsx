@@ -31,6 +31,7 @@ export default function ConversationPage() {
   // Fetch conversations for sidebar
   useEffect(() => {
     fetchConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId]);
 
   // Fetch messages
@@ -40,6 +41,7 @@ export default function ConversationPage() {
     // Auto-refresh every 5 seconds
     const interval = setInterval(() => fetchMessages(false), 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId, phone]);
 
   // Auto-scroll to bottom on new messages
@@ -83,6 +85,7 @@ export default function ConversationPage() {
     }, 2000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchConversations = async () => {
