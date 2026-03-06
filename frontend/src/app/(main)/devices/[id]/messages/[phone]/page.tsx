@@ -114,7 +114,7 @@ export default function ConversationPage() {
     setSending(true);
     await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
     setNewMessage('');
-    ElMessage.success('Message sent');
+    ElMessage.success('消息已发送');
     setTimeout(() => fetchMessages(false), 1000);
     setSending(false);
   };
@@ -122,7 +122,7 @@ export default function ConversationPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }
@@ -182,7 +182,7 @@ export default function ConversationPage() {
               style={{ scrollBehavior: 'smooth' }}
             >
               {messages.length === 0 ? (
-                <div className="text-white/50 text-center mt-8">No messages yet</div>
+                <div className="text-white/50 text-center mt-8">暂无消息</div>
               ) : (
                 messages.map((message) => (
                   <div
@@ -207,7 +207,7 @@ export default function ConversationPage() {
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder="输入消息..."
                   disabled={sending}
                   className="flex-1 px-4 py-3 rounded-lg text-white placeholder-white/50"
                   style={{
@@ -224,7 +224,7 @@ export default function ConversationPage() {
                     color: '#fff',
                   }}
                 >
-                  {sending ? 'Sending...' : 'Send'}
+                  {sending ? '发送中...' : '发送'}
                 </button>
               </div>
             </form>

@@ -21,7 +21,7 @@ export default function MessagesPage() {
       const response = await smsApi.getConversations(deviceId);
       setConversations(response.data.data || []);
     };
-    load().catch((error: any) => ElMessage.error(error.message || 'Failed to load conversations')).finally(() => setLoading(false));
+    load().catch((error: any) => ElMessage.error(error.message || '加载会话失败')).finally(() => setLoading(false));
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, [deviceId]);
@@ -33,7 +33,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }

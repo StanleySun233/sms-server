@@ -60,7 +60,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function SettingsPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder="您的邮箱地址"
               className={inputStyle}
             />
           </div>

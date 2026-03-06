@@ -18,14 +18,14 @@ export default function NewDevicePage() {
     setError('');
     setSuccess('');
     if (!alias.trim()) {
-      setError('Please enter a device name');
+      setError('请输入设备名称');
       return;
     }
     setLoading(true);
     deviceApi.create({ alias }).then((response) => {
       setCreatedDevice(response.data);
-      setSuccess('Device created successfully!');
-    }).catch((err: any) => setError(err.message || 'Failed to create device')).finally(() => setLoading(false));
+      setSuccess('设备创建成功');
+    }).catch((err: any) => setError(err.message || '创建设备失败')).finally(() => setLoading(false));
   };
 
   const webhookUrl = createdDevice
@@ -54,24 +54,24 @@ export default function NewDevicePage() {
             </div>
 
             <div>
-              <label className="block text-white/70 mb-2">Webhook Token</label>
+              <label className="block text-white/70 mb-2">Webhook 令牌</label>
               <div className="bg-black/30 p-4 rounded-lg mb-2">
                 <code className="text-green-400 break-all">{createdDevice.webhookToken}</code>
               </div>
-              <CopyButton text={createdDevice.webhookToken} label="Copy Token" />
+              <CopyButton text={createdDevice.webhookToken} label="复制令牌" />
             </div>
 
             <div>
-              <label className="block text-white/70 mb-2">Webhook URL</label>
+              <label className="block text-white/70 mb-2">Webhook 地址</label>
               <div className="bg-black/30 p-4 rounded-lg mb-2">
                 <code className="text-green-400 break-all">{webhookUrl}</code>
               </div>
-              <CopyButton text={webhookUrl} label="Copy URL" />
+              <CopyButton text={webhookUrl} label="复制地址" />
             </div>
 
             <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
               <p className="text-yellow-200 text-sm">
-                <strong>Important:</strong> Save this webhook token securely. You&apos;ll need to configure it in your 4G device app.
+                <strong>重要：</strong>请妥善保存此 Webhook 令牌，需在 4G 设备应用中配置。
               </p>
             </div>
 
@@ -134,12 +134,12 @@ export default function NewDevicePage() {
               type="text"
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
-              placeholder="e.g., My 4G Device"
+              placeholder="例如：我的 4G 设备"
               maxLength={100}
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-[#c2905e] transition-colors"
             />
             <p className="text-white/60 text-sm mt-2">
-              Choose a name to identify your device
+              为设备起一个便于识别的名称
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export default function NewDevicePage() {
                 color: '#fff',
               }}
             >
-              {loading ? 'Creating...' : 'Create Device'}
+              {loading ? '创建中...' : '创建设备'}
             </button>
             <button
               type="button"

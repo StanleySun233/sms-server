@@ -22,30 +22,30 @@ export default function CallHistoryPage() {
   };
 
   useEffect(() => {
-    fetchCalls().catch((error: any) => ElMessage.error(error.message || 'Failed to load call history')).finally(() => setLoading(false));
+    fetchCalls().catch((error: any) => ElMessage.error(error.message || '加载来电记录失败')).finally(() => setLoading(false));
   }, [deviceId, phone]);
 
   const handleMarkAsRead = async (callId: number) => {
     await missedCallApi.markAsRead([callId]);
-    ElMessage.success('Call marked as read');
+    ElMessage.success('已标记为已读');
     fetchCalls();
   };
 
   const handleMarkAllAsRead = async () => {
     const unreadCallIds = calls.filter((call) => !call.readAt).map((call) => call.id);
     if (unreadCallIds.length === 0) {
-      ElMessage.info('All calls are already marked as read');
+      ElMessage.info('已全部标记为已读');
       return;
     }
     await missedCallApi.markAsRead(unreadCallIds);
-    ElMessage.success(`Marked ${unreadCallIds.length} calls as read`);
+    ElMessage.success(`已标记 ${unreadCallIds.length} 条为已读`);
     fetchCalls();
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function CallHistoryPage() {
                 color: '#fff',
               }}
             >
-              Mark All {unreadCount} as Read
+              全部标记为已读（{unreadCount}）
             </button>
           </div>
         )}
@@ -96,7 +96,7 @@ export default function CallHistoryPage() {
               border: '1px solid rgba(255, 255, 255, 0.2)',
             }}
           >
-            <p className="text-white/70 text-lg">No call history</p>
+            <p className="text-white/70 text-lg">暂无来电记录</p>
           </div>
         ) : (
           <div className="space-y-3">

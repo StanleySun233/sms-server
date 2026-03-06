@@ -19,21 +19,21 @@ export default function DevicesPage() {
 
   useEffect(() => {
     fetchDevices().catch((error: any) => {
-      ElMessage.error(error.message || 'Failed to load devices');
+      ElMessage.error(error.message || '加载设备失败');
     }).finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id: number) => {
     deviceApi.delete(id).then(() => {
-      ElMessage.success('Device deleted successfully');
+      ElMessage.success('设备已删除');
       fetchDevices();
-    }).catch((error: any) => ElMessage.error(error.message || 'Failed to delete'));
+    }).catch((error: any) => ElMessage.error(error.message || '删除失败'));
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }

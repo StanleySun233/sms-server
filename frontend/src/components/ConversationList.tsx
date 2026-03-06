@@ -25,11 +25,11 @@ export default function ConversationList({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search Bar */}
+      {/* 搜索 */}
       <div className="p-4">
         <input
           type="text"
-          placeholder="Search conversations..."
+          placeholder="搜索会话..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full px-4 py-2 rounded-lg text-white placeholder-white/50"
@@ -40,10 +40,10 @@ export default function ConversationList({
         />
       </div>
 
-      {/* Conversation List */}
+      {/* 会话列表 */}
       <div className="flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
-          <div className="p-4 text-white/50 text-center">No conversations found</div>
+          <div className="p-4 text-white/50 text-center">未找到会话</div>
         ) : (
           filteredConversations.map((conversation) => (
             <div
@@ -69,7 +69,7 @@ export default function ConversationList({
               </div>
               <div className="text-sm text-white/70 truncate">{conversation.lastMessage}</div>
               <div className="text-xs text-white/50 mt-1">
-                {new Date(conversation.lastMessageTime).toLocaleString([], {
+                {new Date(conversation.lastMessageTime).toLocaleString('zh-CN', {
                   month: 'short',
                   day: 'numeric',
                   hour: '2-digit',

@@ -65,37 +65,37 @@ export default function DashboardPage() {
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="text-white text-xl">Loading dashboard...</div>
+          <div className="text-white text-xl">加载仪表盘...</div>
         </div>
       ) : stats ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <StatCard
-              title="Online Devices"
+              title="在线设备"
               value={stats.onlineDevices}
               icon="✓"
               color="#10b981"
             />
             <StatCard
-              title="Warning Devices"
+              title="告警设备"
               value={stats.warningDevices}
               icon="⚠"
               color="#f59e0b"
             />
             <StatCard
-              title="Offline Devices"
+              title="离线设备"
               value={stats.offlineDevices}
               icon="✗"
               color="#ef4444"
             />
             <StatCard
-              title="Unread Messages"
+              title="未读短信"
               value={stats.totalUnreadMessages}
               icon="💬"
               color="#c2905e"
             />
             <StatCard
-              title="Missed Calls"
+              title="未接来电"
               value={stats.totalUnreadCalls}
               icon="📞"
               color="#ef4444"
@@ -103,19 +103,19 @@ export default function DashboardPage() {
           </div>
 
           <div className="mb-6 text-white/50 text-sm flex justify-between items-center">
-            <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-            <span className="text-white/30">Auto-refresh every 30s</span>
+            <span>最后更新：{lastUpdated.toLocaleTimeString()}</span>
+            <span className="text-white/30">每 30 秒自动刷新</span>
           </div>
 
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-white mb-6">
-              Your Devices ({stats.devices.length})
+              我的设备（{stats.devices.length}）
             </h2>
             <DeviceGrid devices={stats.devices} />
           </div>
         </>
       ) : (
-        <div className="text-white text-center">Failed to load dashboard data</div>
+        <div className="text-white text-center">加载仪表盘数据失败</div>
       )}
     </div>
   );

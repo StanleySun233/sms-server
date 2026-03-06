@@ -13,7 +13,6 @@ export default function ExportButton({ deviceId, phone }: ExportButtonProps) {
     try {
       const response = await smsApi.exportMessages(deviceId, phone);
 
-      // Create blob and download
       const blob = new Blob([response.data], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -24,9 +23,9 @@ export default function ExportButton({ deviceId, phone }: ExportButtonProps) {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      ElMessage.success('Messages exported successfully');
+      ElMessage.success('消息已导出');
     } catch (error: any) {
-      ElMessage.error(error.message || 'Failed to export messages');
+      ElMessage.error(error.message || '导出失败');
     }
   };
 
@@ -40,7 +39,7 @@ export default function ExportButton({ deviceId, phone }: ExportButtonProps) {
         color: '#fff',
       }}
     >
-      Export CSV
+      导出 CSV
     </button>
   );
 }

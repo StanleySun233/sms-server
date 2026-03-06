@@ -3,8 +3,8 @@ import '../styles/globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'SMS Server Management',
-  description: 'Manage your SMS devices and messages',
+  title: '短信服务管理',
+  description: '管理短信设备与消息',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
 
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <head>
         <script
           dangerouslySetInnerHTML={{

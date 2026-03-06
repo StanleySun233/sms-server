@@ -22,7 +22,7 @@ export default function DeviceDetailPage() {
       setDevice(response.data);
     };
     fetchDevice().catch((error: any) => {
-      ElMessage.error(error.message || 'Failed to load device');
+      ElMessage.error(error.message || '加载设备失败');
       router.push('/devices');
     }).finally(() => setLoading(false));
 
@@ -31,18 +31,18 @@ export default function DeviceDetailPage() {
   }, [deviceId, router]);
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this device? This action cannot be undone.')) {
+    if (!confirm('确定要删除该设备吗？此操作不可恢复。')) {
       return;
     }
     await deviceApi.delete(deviceId);
-    ElMessage.success('Device deleted successfully');
+    ElMessage.success('设备已删除');
     router.push('/devices');
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }
@@ -88,19 +88,19 @@ export default function DeviceDetailPage() {
             </div>
 
             <div>
-              <label className="block text-white/70 mb-2">Webhook Token</label>
+              <label className="block text-white/70 mb-2">Webhook 令牌</label>
               <div className="bg-black/30 p-4 rounded-lg mb-2">
                 <code className="text-green-400 break-all">{device.webhookToken}</code>
               </div>
-              <CopyButton text={device.webhookToken} label="Copy Token" />
+              <CopyButton text={device.webhookToken} label="复制令牌" />
             </div>
 
             <div>
-              <label className="block text-white/70 mb-2">Webhook URL</label>
+              <label className="block text-white/70 mb-2">Webhook 地址</label>
               <div className="bg-black/30 p-4 rounded-lg mb-2">
                 <code className="text-green-400 break-all">{webhookUrl}</code>
               </div>
-              <CopyButton text={webhookUrl} label="Copy URL" />
+              <CopyButton text={webhookUrl} label="复制地址" />
             </div>
 
             {device.currentPhoneNumber && (

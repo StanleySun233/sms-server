@@ -13,26 +13,25 @@ export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardPro
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-    // Show relative time for recent calls, absolute time for older ones
     if (diffInHours < 1) {
       const minutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+      return `${minutes} 分钟前`;
     } else if (diffInHours < 24) {
       const hours = Math.floor(diffInHours);
-      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+      return `${hours} 小时前`;
     } else if (diffInHours < 48) {
-      return `Yesterday at ${date.toLocaleTimeString('en-US', {
+      return `昨天 ${date.toLocaleTimeString('zh-CN', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
+        hour12: false,
       })}`;
     } else {
-      return date.toLocaleString('en-US', {
+      return date.toLocaleString('zh-CN', {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
+        hour12: false,
       });
     }
   };
@@ -52,7 +51,6 @@ export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardPro
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* Phone icon with missed call indicator */}
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center"
             style={{
@@ -90,7 +88,7 @@ export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardPro
               color: '#fff',
             }}
           >
-            Mark Read
+            标记已读
           </button>
         )}
       </div>

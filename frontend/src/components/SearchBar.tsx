@@ -35,7 +35,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <input
           type="text"
-          placeholder="Search by keyword..."
+          placeholder="按关键词搜索..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           className="px-4 py-2 rounded-lg text-white placeholder-white/50"
@@ -46,7 +46,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         />
         <input
           type="text"
-          placeholder="Filter by phone..."
+          placeholder="按号码筛选..."
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           className="px-4 py-2 rounded-lg text-white placeholder-white/50"
@@ -57,7 +57,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         />
         <input
           type="datetime-local"
-          placeholder="Start time"
+          placeholder="开始时间"
           value={startTime}
           onChange={(e) => setStartTime(e.target.value)}
           className="px-4 py-2 rounded-lg text-white"
@@ -68,7 +68,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         />
         <input
           type="datetime-local"
-          placeholder="End time"
+          placeholder="结束时间"
           value={endTime}
           onChange={(e) => setEndTime(e.target.value)}
           className="px-4 py-2 rounded-lg text-white"
@@ -83,7 +83,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         className="w-full px-6 py-2 rounded-lg font-medium transition-all duration-200"
         style={{ backgroundColor: '#c2905e', color: '#fff' }}
       >
-        Search
+        搜索
       </button>
     </form>
   );

@@ -32,17 +32,17 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
       <div className="space-y-2 text-white/70 text-sm">
         {device.currentPhoneNumber && (
           <div>
-            <span className="font-medium">Phone:</span> {device.currentPhoneNumber}
+            <span className="font-medium">号码：</span> {device.currentPhoneNumber}
           </div>
         )}
         {device.lastHeartbeatAt && (
           <div>
-            <span className="font-medium">Last Heartbeat:</span>{' '}
+            <span className="font-medium">最后心跳：</span>{' '}
             {new Date(device.lastHeartbeatAt).toLocaleString()}
           </div>
         )}
         <div>
-          <span className="font-medium">Created:</span>{' '}
+          <span className="font-medium">创建时间：</span>{' '}
           {new Date(device.createdAt).toLocaleDateString()}
         </div>
       </div>
@@ -59,13 +59,13 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
             color: '#fff',
           }}
         >
-          Edit
+          编辑
         </button>
         {onDelete && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm('Are you sure you want to delete this device?')) {
+              if (confirm('确定要删除该设备吗？')) {
                 onDelete(device.id);
               }
             }}
@@ -75,7 +75,7 @@ export default function DeviceCard({ device, onDelete }: DeviceCardProps) {
               color: '#fff',
             }}
           >
-            Delete
+            删除
           </button>
         )}
       </div>

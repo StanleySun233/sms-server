@@ -22,7 +22,7 @@ export default function EditDevicePage() {
       setDevice(response.data);
       setAlias(response.data.alias);
     }).catch((error: any) => {
-      setError(error.message || 'Failed to load device');
+      setError(error.message || '加载设备失败');
       setTimeout(() => router.push('/devices'), 2000);
     }).finally(() => setLoading(false));
   }, [deviceId, router]);
@@ -32,20 +32,20 @@ export default function EditDevicePage() {
     setError('');
     setSuccess('');
     if (!alias.trim()) {
-      setError('Please enter a device name');
+      setError('请输入设备名称');
       return;
     }
     setSaving(true);
     deviceApi.update(deviceId, { alias }).then(() => {
-      setSuccess('Device updated successfully!');
+      setSuccess('设备已更新');
       setTimeout(() => router.push('/devices'), 1500);
-    }).catch((err: any) => setError(err.message || 'Failed to update device')).finally(() => setSaving(false));
+    }).catch((err: any) => setError(err.message || '更新设备失败')).finally(() => setSaving(false));
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }
@@ -81,12 +81,12 @@ export default function EditDevicePage() {
               type="text"
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
-              placeholder="e.g., My 4G Device"
+              placeholder="例如：我的 4G 设备"
               maxLength={100}
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-[#c2905e] transition-colors"
             />
             <p className="text-white/60 text-sm mt-2">
-              Choose a name to identify your device
+              为设备起一个便于识别的名称
             </p>
           </div>
 
@@ -100,7 +100,7 @@ export default function EditDevicePage() {
                 color: '#fff',
               }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? '保存中...' : '保存修改'}
             </button>
             <button
               type="button"

@@ -8,17 +8,17 @@ interface CopyButtonProps {
   label?: string;
 }
 
-export default function CopyButton({ text, label = 'Copy' }: CopyButtonProps) {
+export default function CopyButton({ text, label = '复制' }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      ElMessage.success('Copied to clipboard!');
+      ElMessage.success('已复制到剪贴板');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      ElMessage.error('Failed to copy to clipboard');
+      ElMessage.error('复制失败');
     }
   };
 
@@ -31,7 +31,7 @@ export default function CopyButton({ text, label = 'Copy' }: CopyButtonProps) {
         color: '#fff',
       }}
     >
-      {copied ? 'Copied!' : label}
+      {copied ? '已复制' : label}
     </button>
   );
 }

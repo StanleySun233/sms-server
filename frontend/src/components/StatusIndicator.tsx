@@ -11,9 +11,9 @@ const statusColors = {
 };
 
 const statusLabels = {
-  online: 'Online',
-  warning: 'Warning',
-  offline: 'Offline',
+  online: '在线',
+  warning: '告警',
+  offline: '离线',
 };
 
 export default function StatusIndicator({ status }: StatusIndicatorProps) {

@@ -48,7 +48,7 @@ apiClient.interceptors.response.use(
       }
     }
     const msg = getResponseMessage(error.response?.data);
-    const errorMessage = msg || error.message || 'An unexpected error occurred';
+    const errorMessage = msg || error.message || '发生未知错误';
     return Promise.reject(new Error(errorMessage));
   }
 );

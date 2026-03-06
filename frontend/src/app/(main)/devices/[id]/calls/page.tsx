@@ -19,7 +19,7 @@ export default function MissedCallsPage() {
       const response = await missedCallApi.getMissedCalls(deviceId);
       setCalls(response.data.data || []);
     };
-    load().catch((error: any) => ElMessage.error(error.message || 'Failed to load missed calls')).finally(() => setLoading(false));
+    load().catch((error: any) => ElMessage.error(error.message || '加载未接来电失败')).finally(() => setLoading(false));
   }, [deviceId]);
 
   const formatTimestamp = (timestamp: string) => {
@@ -29,23 +29,23 @@ export default function MissedCallsPage() {
 
     if (diffInHours < 1) {
       const minutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+      return `${minutes} 分钟前`;
     } else if (diffInHours < 24) {
       const hours = Math.floor(diffInHours);
-      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+      return `${hours} 小时前`;
     } else if (diffInHours < 48) {
-      return `Yesterday at ${date.toLocaleTimeString('en-US', {
+      return `昨天 ${date.toLocaleTimeString('zh-CN', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
+        hour12: false,
       })}`;
     } else {
-      return date.toLocaleString('en-US', {
+      return date.toLocaleString('zh-CN', {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
+        hour12: false,
       });
     }
   };
@@ -53,7 +53,7 @@ export default function MissedCallsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">加载中...</div>
       </div>
     );
   }
@@ -136,7 +136,7 @@ export default function MissedCallsPage() {
                       color: '#ef4444',
                     }}
                   >
-                    {call.count} {call.count === 1 ? 'call' : 'calls'}
+                    {call.count} 次来电
                   </div>
                 </div>
               </div>

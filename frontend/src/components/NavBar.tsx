@@ -37,7 +37,7 @@ export default function NavBar() {
         className="text-lg font-semibold mr-6"
         style={{ color: '#c2905e' }}
       >
-        SMS Server
+        短信服务
       </Link>
       <div className="flex items-center gap-1 flex-1">
         {navItems.map((item) => {

@@ -21,7 +21,7 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
-        <p className="text-white/70 text-lg">No devices found. Create your first device to get started!</p>
+        <p className="text-white/70 text-lg">暂无设备，请先添加设备</p>
       </div>
     );
   }
@@ -49,14 +49,14 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
           <div className="space-y-3 text-white/70 text-sm">
             {device.currentPhoneNumber && (
               <div className="flex items-center gap-2">
-                <span className="font-medium">📱 Phone:</span>
+                <span className="font-medium">📱 号码：</span>
                 <span>{device.currentPhoneNumber}</span>
               </div>
             )}
 
             {device.lastHeartbeatAt && (
               <div className="flex items-center gap-2">
-                <span className="font-medium">💓 Last Heartbeat:</span>
+                <span className="font-medium">💓 最后心跳：</span>
                 <span className="text-xs">{new Date(device.lastHeartbeatAt).toLocaleString()}</span>
               </div>
             )}
@@ -71,7 +71,7 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
                 >
                   <span>💬</span>
                   <span className="font-semibold">{device.unreadMessages}</span>
-                  <span className="text-xs">unread</span>
+                  <span className="text-xs">未读</span>
                 </div>
               )}
 
@@ -84,13 +84,13 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
                 >
                   <span>📞</span>
                   <span className="font-semibold">{device.unreadCalls}</span>
-                  <span className="text-xs">missed</span>
+                  <span className="text-xs">未接</span>
                 </div>
               )}
 
               {device.unreadMessages === 0 && device.unreadCalls === 0 && (
                 <div className="text-white/50 text-sm">
-                  All caught up! ✓
+                  已全部处理 ✓
                 </div>
               )}
             </div>
