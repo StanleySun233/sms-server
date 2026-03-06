@@ -22,7 +22,8 @@
       "Bash(git push:*)",
       "Bash(./mvnw spring-boot:run:*)",
       "Bash(xargs grep:*)",
-      "Bash(./mvnw dependency:tree:*)"
+      "Bash(./mvnw dependency:tree:*)",
+      "Bash(cat:*)"
     ]
   }
 }

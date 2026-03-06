@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.1.11</version>
         <relativePath/>
     </parent>
 
@@ -22,7 +22,7 @@
         <java.version>18</java.version>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
-        <mybatis-plus.version>3.5.16</mybatis-plus.version>
+        <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <springdoc.version>2.3.0</springdoc.version>
     </properties>
 
