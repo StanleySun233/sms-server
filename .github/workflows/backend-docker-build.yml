@@ -10,6 +10,7 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-docker-build.yml'
     tags:
+      - 'v*'
       - 'backend-v*'
   pull_request:
     branches:
@@ -52,6 +53,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=semver,pattern={{version}}
             type=semver,pattern={{version}},prefix=backend-v
             type=semver,pattern={{major}}.{{minor}},prefix=backend-v
             type=semver,pattern={{major}},prefix=backend-v

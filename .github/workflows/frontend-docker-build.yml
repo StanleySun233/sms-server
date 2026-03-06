@@ -10,6 +10,7 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend-docker-build.yml'
     tags:
+      - 'v*'
       - 'frontend-v*'
   pull_request:
     branches:
@@ -52,6 +53,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=semver,pattern={{version}}
             type=semver,pattern={{version}},prefix=frontend-v
             type=semver,pattern={{major}}.{{minor}},prefix=frontend-v
             type=semver,pattern={{major}},prefix=frontend-v
