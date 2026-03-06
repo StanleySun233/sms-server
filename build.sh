@@ -119,16 +119,6 @@ echo -e "${YELLOW}[3/5] Pulling backend image...${NC}"
 BACKEND_TAG=${BACKEND_TAG:-latest}
 BACKEND_IMAGE="ghcr.io/stanleysun233/sms-server-backend:${BACKEND_TAG}"
 
-# Remove local images if they exist
-if $DOCKER images -q sms-backend:latest 2> /dev/null; then
-    echo "Removing local backend image..."
-    $DOCKER rmi -f sms-backend:latest 2> /dev/null || true
-fi
-if $DOCKER images -q $BACKEND_IMAGE 2> /dev/null; then
-    echo "Removing cached backend image..."
-    $DOCKER rmi -f $BACKEND_IMAGE 2> /dev/null || true
-fi
-
 echo "Pulling image: $BACKEND_IMAGE"
 $DOCKER pull $BACKEND_IMAGE
 
@@ -177,16 +167,6 @@ echo -e "${YELLOW}[5/5] Pulling frontend image...${NC}"
 FRONTEND_TAG=${FRONTEND_TAG:-latest}
 FRONTEND_IMAGE="ghcr.io/stanleysun233/sms-server-frontend:${FRONTEND_TAG}"
 
-# Remove local images if they exist
-if $DOCKER images -q sms-frontend:latest 2> /dev/null; then
-    echo "Removing local frontend image..."
-    $DOCKER rmi -f sms-frontend:latest 2> /dev/null || true
-fi
-if $DOCKER images -q $FRONTEND_IMAGE 2> /dev/null; then
-    echo "Removing cached frontend image..."
-    $DOCKER rmi -f $FRONTEND_IMAGE 2> /dev/null || true
-fi
-
 echo "Pulling image: $FRONTEND_IMAGE"
 $DOCKER pull $FRONTEND_IMAGE
 
@@ -212,7 +192,6 @@ $DOCKER run -d \
     -p $FRONTEND_PORT:3000 \
     -e NODE_ENV="$NODE_ENV" \
     -e NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
-    -e BACKEND_URL="http://sms-backend:8080" \
     --restart unless-stopped \
     sms-frontend:latest
 
