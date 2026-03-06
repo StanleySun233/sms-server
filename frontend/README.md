@@ -102,7 +102,6 @@ docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://api:8080/api sms-server-fr
 
 The Axios client in `src/lib/api.ts` handles:
 
-- Automatic authentication token injection
-- Session cookie management
+- Automatic JWT Bearer token injection
 - 401 error handling with auto-redirect
 - Request/response interceptors

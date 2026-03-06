@@ -16,7 +16,6 @@ copy .env.example .env
 # MYSQL_PASSWORD=你的MySQL用户密码
 # REDIS_PASSWORD=你的Redis密码
 # JWT_SECRET=至少32字符的JWT密钥
-# SESSION_SECRET=至少32字符的会话密钥
 ```
 
 ### 第二步：启动服务
@@ -95,6 +94,40 @@ docker-compose logs -f
    - 返回仪表板
    - 查看设备统计
    - 查看未读消息和来电数量
+
+---
+
+## Windows 下不使用 Docker 时如何识别 .env
+
+使用 Docker 时，`docker-compose` 会自动读取项目根目录的 `.env` 并把变量注入容器。**不用 Docker 时，后端和前端都不会自动读取项目根目录的 `.env`**，需要按下面方式处理。
+
+### 后端（Spring Boot）
+
+- Spring Boot **不会**自动加载 `.env` 文件，只读取**系统环境变量**。
+- `application.yml` 中的 `JWT_SECRET`、`SPRING_PROFILE` 等来自环境变量。
+- 在启动后端前，在终端里设置环境变量（PowerShell 示例）：
+  ```powershell
+  $env:JWT_SECRET = "你的至少32字符的JWT密钥"
+  $env:SPRING_PROFILES_ACTIVE = "dev"
+  ```
+  或在“系统属性 → 高级 → 环境变量”里永久添加。
+- `application-dev.yml` 里数据库、Redis 的地址/账号密码目前是写死的（localhost、smsadmin/smspassword），若本地 MySQL/Redis 与此一致即可，无需再从 .env 读。
+
+### 前端（Next.js）
+
+- Next.js 只会加载**当前工作目录**下的 `.env`（如 `.env`、`.env.local`、`.env.development`）。
+- 在 `frontend/` 下执行 `npm run dev` 时，只会读 `frontend/.env`，**不会**读项目根的 `.env`。
+- 做法：把项目根目录的 `.env` 复制到 `frontend/.env`，或只在 `frontend/` 下建 `.env.local`，并至少设置：
+  - `BACKEND_URL=http://localhost:8080`（Next 服务端代理用）
+  - `NEXT_PUBLIC_API_URL=/api`（浏览器请求 API 的地址）
+
+### 小结
+
+| 环境           | 谁读 .env | 说明 |
+|----------------|-----------|------|
+| Docker         | docker-compose | 自动读项目根 `.env` 并注入各容器 |
+| Windows 非 Docker | 后端不读 | 需手动设置系统环境变量（如 JWT_SECRET） |
+| Windows 非 Docker | 前端不读根目录 .env | 需把 .env 放到 `frontend/` 下或建 `frontend/.env.local` |
 
 ---
 

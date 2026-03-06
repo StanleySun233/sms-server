@@ -51,7 +51,6 @@ MYSQL_ROOT_PASSWORD=your_secure_password
 MYSQL_PASSWORD=your_secure_password
 REDIS_PASSWORD=your_redis_password
 JWT_SECRET=your_jwt_secret_at_least_32_characters
-SESSION_SECRET=your_session_secret_at_least_32_characters
 ```
 
 ### 2. 拉取镜像并启动
@@ -190,7 +189,6 @@ BACKEND_TAG=backend-v1.0.0 FRONTEND_TAG=frontend-v1.0.0 docker-compose up -d
 | `MYSQL_PASSWORD` | 数据库密码 | `UserPassword123!` |
 | `REDIS_PASSWORD` | Redis 密码 | `RedisPassword123!` |
 | `JWT_SECRET` | JWT 密钥（至少 32 字符） | `your-secret-key-here-32-chars` |
-| `SESSION_SECRET` | 会话密钥（至少 32 字符） | `your-session-key-here-32-chars` |
 
 ### 可选的环境变量
 
