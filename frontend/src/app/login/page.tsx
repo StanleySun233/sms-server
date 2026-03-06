@@ -50,11 +50,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(45, 45, 45)' }}>
-      <div className="relative glass-card p-8 w-full max-w-md">
+      <div className="relative glass-card p-8 w-[600px] min-h-[400px]">
         <div className="absolute top-4 right-4">
           <LocaleSwitcher />
         </div>
-        <h1 className="text-3xl font-bold text-center mb-8" style={{ color: '#c2905e' }}>
+        <h1 className="text-3xl font-bold text-center mb-8 pt-10" style={{ color: '#c2905e' }}>
           {t('title')}
         </h1>
         <form onSubmit={handleSubmit}>

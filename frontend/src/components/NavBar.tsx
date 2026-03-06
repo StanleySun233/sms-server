@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { authApi } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
 
 export default function NavBar() {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const navItems = [
     { href: '/dashboard', label: t('dashboard') },
@@ -26,7 +27,7 @@ export default function NavBar() {
   };
 
   const handleLogout = async () => {
-    await authApi.logout();
+    await logout();
     router.push('/login');
   };
 
