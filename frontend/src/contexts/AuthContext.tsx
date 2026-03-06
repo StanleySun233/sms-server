@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@/lib/types';
-import { authApi } from '@/lib/api';
+import { authApi, TOKEN_KEY } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -34,11 +34,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
-    await authApi.login({ username, password });
+    const response = await authApi.login({ username, password });
+    const token = (response.data as { token?: string })?.token;
+    if (token && typeof window !== 'undefined') {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
     await fetchUser();
   };
 
   const logout = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(TOKEN_KEY);
+    }
     await authApi.logout();
     setUser(null);
   };

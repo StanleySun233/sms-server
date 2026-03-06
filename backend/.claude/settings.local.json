@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn:*)",
+      "Bash(choco:*)",
+      "Bash(scoop:*)",
+      "Bash(powershell:*)",
+      "Bash(curl:*)",
+      "Bash(mkdir:*)"
+    ]
+  }
+}

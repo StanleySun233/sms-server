@@ -10,34 +10,27 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class AuthService {
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final RedisService redisService;
-
-    private static final int SESSION_EXPIRY_DAYS = 7;
+    private final JwtService jwtService;
 
     @Transactional
     public User register(RegisterRequest request) {
-        // Check if username already exists
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getUsername, request.getUsername());
         if (userMapper.selectOne(wrapper) != null) {
             throw new RuntimeException("Username already exists");
         }
 
-        // Check if email already exists
         wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getEmail, request.getEmail());
         if (userMapper.selectOne(wrapper) != null) {
             throw new RuntimeException("Email already exists");
         }
 
-        // Create new user
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -48,7 +41,6 @@ public class AuthService {
     }
 
     public String login(LoginRequest request) {
-        // Find user by username
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getUsername, request.getUsername());
         User user = userMapper.selectOne(wrapper);
@@ -57,22 +49,10 @@ public class AuthService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // Create session
-        String sessionId = UUID.randomUUID().toString();
-        redisService.setSession(sessionId, user.getId(), SESSION_EXPIRY_DAYS * 24 * 60 * 60);
-
-        return sessionId;
+        return jwtService.generateToken(user.getId());
     }
 
-    public void logout(String sessionId) {
-        redisService.deleteSession(sessionId);
-    }
-
-    public User getCurrentUser(String sessionId) {
-        Long userId = redisService.getSession(sessionId);
-        if (userId == null) {
-            return null;
-        }
-        return userMapper.selectById(userId);
+    public User getUserById(Long userId) {
+        return userId != null ? userMapper.selectById(userId) : null;
     }
 }

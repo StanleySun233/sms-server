@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-// Get API URL from runtime config (window object) or fallback to env
+export const TOKEN_KEY = 'auth_token';
+
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
     // @ts-ignore - runtime config injected via env-config.js
@@ -9,36 +10,35 @@ const getApiUrl = () => {
   return '/api';
 };
 
-// Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
   baseURL: getApiUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Enable session cookies
 });
 
-// Response interceptor for handling errors
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error: AxiosError) => {
-    // Handle 401 unauthorized errors
-    if (error.response?.status === 401) {
-      // Redirect to login
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+  }
+  return config;
+});
 
-    // Handle other errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/login';
+    }
     const errorMessage =
       (error.response?.data as any)?.message ||
       error.message ||
       'An unexpected error occurred';
-
     return Promise.reject(new Error(errorMessage));
   }
 );

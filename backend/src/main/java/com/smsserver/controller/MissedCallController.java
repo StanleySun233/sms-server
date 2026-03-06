@@ -4,6 +4,7 @@ import com.smsserver.dto.ApiResponse;
 import com.smsserver.dto.MarkCallsReadRequest;
 import com.smsserver.dto.MissedCallResponse;
 import com.smsserver.dto.MissedCallSummary;
+import com.smsserver.entity.User;
 import com.smsserver.service.MissedCallService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,9 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * REST controller for missed call management
- */
 @Slf4j
 @RestController
 @RequestMapping("")
@@ -22,16 +20,16 @@ import java.util.List;
 public class MissedCallController {
     private final MissedCallService missedCallService;
 
-    /**
-     * Get missed calls grouped by phone number
-     * GET /api/devices/:id/missed-calls
-     */
+    private Long getCurrentUserId(Authentication auth) {
+        return ((User) auth.getPrincipal()).getId();
+    }
+
     @GetMapping("/devices/{id}/missed-calls")
     public ApiResponse<List<MissedCallSummary>> getMissedCalls(
             @PathVariable Long id,
             Authentication auth) {
         try {
-            Long userId = Long.parseLong(auth.getName());
+            Long userId = getCurrentUserId(auth);
             List<MissedCallSummary> calls = missedCallService.getMissedCallsByPhone(id, userId);
             return ApiResponse.success(calls);
         } catch (Exception e) {
@@ -50,7 +48,7 @@ public class MissedCallController {
             @RequestParam String phone,
             Authentication auth) {
         try {
-            Long userId = Long.parseLong(auth.getName());
+            Long userId = getCurrentUserId(auth);
             List<MissedCallResponse> calls = missedCallService.getCallHistory(id, phone, userId);
             return ApiResponse.success(calls);
         } catch (Exception e) {
@@ -68,7 +66,7 @@ public class MissedCallController {
             @RequestBody MarkCallsReadRequest request,
             Authentication auth) {
         try {
-            Long userId = Long.parseLong(auth.getName());
+            Long userId = getCurrentUserId(auth);
             missedCallService.markCallsAsRead(request.getCallIds(), userId);
             return ApiResponse.success(null);
         } catch (Exception e) {
@@ -86,7 +84,7 @@ public class MissedCallController {
             @PathVariable Long id,
             Authentication auth) {
         try {
-            Long userId = Long.parseLong(auth.getName());
+            Long userId = getCurrentUserId(auth);
             Long count = missedCallService.getUnreadCallCount(id, userId);
             return ApiResponse.success(count);
         } catch (Exception e) {

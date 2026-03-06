@@ -17,37 +17,6 @@ public class RedisService {
     private final PendingSmsMapper pendingSmsMapper;
 
     /**
-     * Store a session in Redis
-     * @param sessionId The session ID
-     * @param userId The user ID
-     * @param expirySeconds Session expiry time in seconds
-     */
-    public void setSession(String sessionId, Long userId, long expirySeconds) {
-        String key = "session:" + sessionId;
-        redisTemplate.opsForValue().set(key, userId.toString(), expirySeconds, TimeUnit.SECONDS);
-    }
-
-    /**
-     * Retrieve a session from Redis
-     * @param sessionId The session ID
-     * @return The user ID or null if session doesn't exist
-     */
-    public Long getSession(String sessionId) {
-        String key = "session:" + sessionId;
-        String userId = redisTemplate.opsForValue().get(key);
-        return userId != null ? Long.parseLong(userId) : null;
-    }
-
-    /**
-     * Delete a session from Redis
-     * @param sessionId The session ID
-     */
-    public void deleteSession(String sessionId) {
-        String key = "session:" + sessionId;
-        redisTemplate.delete(key);
-    }
-
-    /**
      * Store a value in Redis
      * @param key The key
      * @param value The value

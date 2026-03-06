@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smsserver.dto.*;
 import com.smsserver.entity.PendingSms;
 import com.smsserver.entity.SmsMessage;
+import com.smsserver.entity.User;
 import com.smsserver.service.SmsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -24,15 +26,15 @@ import java.util.List;
 public class SmsController {
     private final SmsService smsService;
 
-    /**
-     * Get all conversations for a device
-     * GET /api/devices/:id/conversations
-     */
+    private Long getCurrentUserId() {
+        return ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
+    }
+
     @GetMapping("/devices/{id}/conversations")
     public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversations(
-            @PathVariable Long id,
-            @RequestAttribute("userId") Long userId) {
+            @PathVariable Long id) {
         try {
+            Long userId = getCurrentUserId();
             List<ConversationResponse> conversations = smsService.getConversations(id, userId);
             return ResponseEntity.ok(ApiResponse.success(conversations));
         } catch (Exception e) {
@@ -50,9 +52,9 @@ public class SmsController {
             @PathVariable Long id,
             @RequestParam String phone,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "50") int size,
-            @RequestAttribute("userId") Long userId) {
+            @RequestParam(defaultValue = "50") int size) {
         try {
+            Long userId = getCurrentUserId();
             Page<SmsMessage> messages = smsService.getConversationMessages(id, phone, userId, page, size);
             return ResponseEntity.ok(ApiResponse.success(messages));
         } catch (Exception e) {
@@ -69,9 +71,9 @@ public class SmsController {
     @PostMapping("/devices/{id}/messages")
     public ResponseEntity<ApiResponse<PendingSms>> sendMessage(
             @PathVariable Long id,
-            @Valid @RequestBody SendMessageRequest request,
-            @RequestAttribute("userId") Long userId) {
+            @Valid @RequestBody SendMessageRequest request) {
         try {
+            Long userId = getCurrentUserId();
             PendingSms pendingSms = smsService.sendMessage(id, request.getPhone(), request.getContent(), userId);
             return ResponseEntity.ok(ApiResponse.success(pendingSms));
         } catch (Exception e) {
@@ -87,9 +89,9 @@ public class SmsController {
      */
     @PutMapping("/messages/read")
     public ResponseEntity<ApiResponse<Void>> markMessagesAsRead(
-            @Valid @RequestBody MarkReadRequest request,
-            @RequestAttribute("userId") Long userId) {
+            @Valid @RequestBody MarkReadRequest request) {
         try {
+            Long userId = getCurrentUserId();
             smsService.markMessagesAsRead(request.getMessageIds(), userId);
             return ResponseEntity.ok(ApiResponse.success(null));
         } catch (Exception e) {
@@ -108,9 +110,9 @@ public class SmsController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) String start_time,
-            @RequestParam(required = false) String end_time,
-            @RequestAttribute("userId") Long userId) {
+            @RequestParam(required = false) String end_time) {
         try {
+            Long userId = getCurrentUserId();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime startTime = start_time != null ? LocalDateTime.parse(start_time, formatter) : null;
             LocalDateTime endTime = end_time != null ? LocalDateTime.parse(end_time, formatter) : null;
@@ -131,9 +133,9 @@ public class SmsController {
     public ResponseEntity<byte[]> exportMessages(
             @PathVariable Long id,
             @RequestParam(required = false) String phone,
-            @RequestParam(defaultValue = "csv") String format,
-            @RequestAttribute("userId") Long userId) {
+            @RequestParam(defaultValue = "csv") String format) {
         try {
+            Long userId = getCurrentUserId();
             byte[] data = smsService.exportMessages(id, phone, format, userId);
 
             String filename = "messages_" + id + "_" + System.currentTimeMillis() + ".csv";
