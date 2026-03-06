@@ -29,8 +29,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers(
-                    "/api/auth/**",
-                    "/api/webhook/**",
+                    "/auth/**",
+                    "/webhook/**",
                     "/actuator/health",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
