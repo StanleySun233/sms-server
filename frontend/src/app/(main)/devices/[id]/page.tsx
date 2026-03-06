@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
+import { parseUtcAndFormatLocal } from '@/lib/dateUtils';
 import StatusIndicator from '@/components/StatusIndicator';
 import CopyButton from '@/components/CopyButton';
 
@@ -117,7 +118,7 @@ export default function DeviceDetailPage() {
               <div>
                 <label className="block text-white/70 mb-2">{t('lastHeartbeat')}</label>
                 <div className="text-white text-lg">
-                  {new Date(device.lastHeartbeatAt).toLocaleString()}
+                  {parseUtcAndFormatLocal(device.lastHeartbeatAt)}
                 </div>
               </div>
             )}
@@ -164,17 +165,29 @@ export default function DeviceDetailPage() {
         >
           <h2 className="text-2xl font-semibold text-white mb-4">{t('quickActions')}</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => router.push(`/devices/${device.id}/messages`)}
               className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backgroundColor: 'rgba(96, 165, 250, 0.12)',
+                border: '1px solid rgba(96, 165, 250, 0.22)',
               }}
             >
-              <div className="text-white text-lg font-medium mb-2">{t('sms')}</div>
-              <p className="text-white/70 text-sm">{t('smsHint')}</p>
+              <div className="text-white text-lg font-medium mb-2">{t('receiveSms')}</div>
+              <p className="text-white/70 text-sm">{t('receiveSmsHint')}</p>
+            </button>
+
+            <button
+              onClick={() => router.push(`/devices/${device.id}/send`)}
+              className="rounded-lg p-6 text-left transition-all duration-200 hover:scale-105"
+              style={{
+                backgroundColor: 'rgba(194, 144, 94, 0.12)',
+                border: '1px solid rgba(194, 144, 94, 0.28)',
+              }}
+            >
+              <div className="text-white text-lg font-medium mb-2">{t('sendSms')}</div>
+              <p className="text-white/70 text-sm">{t('sendSmsHint')}</p>
             </button>
 
             <button

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Device } from '@/lib/types';
+import { parseUtcAndFormatLocal } from '@/lib/dateUtils';
 import StatusIndicator from './StatusIndicator';
 import { useRouter } from 'next/navigation';
 
@@ -39,7 +40,7 @@ export default function DeviceCard({ device }: DeviceCardProps) {
         {device.lastHeartbeatAt && (
           <div>
             <span className="font-medium">{t('lastHeartbeatLabel')}</span>{' '}
-            {new Date(device.lastHeartbeatAt).toLocaleString()}
+            {parseUtcAndFormatLocal(device.lastHeartbeatAt)}
           </div>
         )}
         <div>

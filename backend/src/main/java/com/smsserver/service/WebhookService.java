@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class WebhookService {
         log.info("Processing heartbeat for device {} (user {})", device.getId(), device.getUserId());
 
         // 2. Update device heartbeat and info
-        device.setLastHeartbeatAt(LocalDateTime.now());
+        device.setLastHeartbeatAt(LocalDateTime.now(ZoneOffset.UTC));
         if (request.getDeviceInfo() != null) {
             device.setImei(request.getDeviceInfo().getImei());
 
@@ -63,9 +64,12 @@ public class WebhookService {
         // 5. Fetch pending SMS tasks from Redis
         List<PendingSms> pendingTasks = redisService.popPendingSmsTasks(device.getId());
 
-        // 6. Build response with commands
+        // 6. Build response with commands (update DB first to avoid inconsistent state)
         WebhookResponse response = new WebhookResponse();
         for (PendingSms task : pendingTasks) {
+            task.setStatus("sent");
+            task.setSentAt(LocalDateTime.now());
+            pendingSmsMapper.updateById(task);
             response.getCommands().add(
                 WebhookResponse.Command.sendSms(
                     task.getId(),
@@ -73,11 +77,6 @@ public class WebhookService {
                     task.getContent()
                 )
             );
-
-            // Update task status to 'sent'
-            task.setStatus("sent");
-            task.setSentAt(LocalDateTime.now());
-            pendingSmsMapper.updateById(task);
         }
 
         // Update device status cache

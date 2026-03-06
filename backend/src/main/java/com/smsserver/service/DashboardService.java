@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,8 +24,6 @@ public class DashboardService {
     private final SmsMessageMapper smsMessageMapper;
     private final MissedCallMapper missedCallMapper;
     private final DeviceService deviceService;
-
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     /**
      * Get comprehensive dashboard statistics for a user
@@ -88,7 +86,7 @@ public class DashboardService {
             stats.setUnreadCalls((int) unreadCalls);
             stats.setLastHeartbeatAt(
                 device.getLastHeartbeatAt() != null
-                    ? device.getLastHeartbeatAt().format(FORMATTER)
+                    ? device.getLastHeartbeatAt().atZone(ZoneOffset.UTC).toInstant().toString()
                     : null
             );
             stats.setCurrentPhoneNumber(device.getCurrentPhoneNumber());

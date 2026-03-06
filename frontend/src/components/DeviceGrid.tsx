@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { DeviceStats } from '@/lib/types';
+import { parseUtcAndFormatLocal } from '@/lib/dateUtils';
 import { useRouter } from 'next/navigation';
 import StatusIndicator from './StatusIndicator';
 
@@ -59,7 +60,7 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
             {device.lastHeartbeatAt && (
               <div className="flex items-center gap-2">
                 <span className="font-medium">💓 {t('lastHeartbeatLabel')}</span>
-                <span className="text-xs">{new Date(device.lastHeartbeatAt).toLocaleString()}</span>
+                <span className="text-xs">{parseUtcAndFormatLocal(device.lastHeartbeatAt)}</span>
               </div>
             )}
 

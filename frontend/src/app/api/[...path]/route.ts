@@ -1,12 +1,14 @@
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
-function buildTargetUrl(path: string[]): string {
+function buildTargetUrl(path: string[], requestUrl: string): string {
   const segment = path.join('/');
-  return `${BACKEND_URL}/api/${segment}`;
+  const url = new URL(requestUrl);
+  const search = url.search;
+  return `${BACKEND_URL}/api/${segment}${search ? search : ''}`;
 }
 
 async function proxy(request: Request, path: string[]) {
-  const url = buildTargetUrl(path);
+  const url = buildTargetUrl(path, request.url);
   const headers = new Headers(request.headers);
   headers.delete('host');
   const body = request.method !== 'GET' && request.method !== 'HEAD' ? await request.text() : undefined;

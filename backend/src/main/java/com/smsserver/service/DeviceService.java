@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Random;
 
@@ -57,7 +58,7 @@ public class DeviceService {
             return "offline";
         }
 
-        Duration duration = Duration.between(device.getLastHeartbeatAt(), LocalDateTime.now());
+        Duration duration = Duration.between(device.getLastHeartbeatAt(), LocalDateTime.now(ZoneOffset.UTC));
         long minutes = duration.toMinutes();
 
         if (minutes < 3) {

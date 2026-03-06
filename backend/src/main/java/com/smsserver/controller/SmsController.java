@@ -1,6 +1,5 @@
 package com.smsserver.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smsserver.dto.*;
 import com.smsserver.entity.PendingSms;
 import com.smsserver.entity.SmsMessage;
@@ -48,15 +47,15 @@ public class SmsController {
      * GET /api/devices/:id/messages?phone=xxx&page=1&size=50
      */
     @GetMapping("/devices/{id}/messages")
-    public ResponseEntity<ApiResponse<Page<SmsMessage>>> getConversationMessages(
+    public ResponseEntity<ApiResponse<PagedMessagesResponse>> getConversationMessages(
             @PathVariable Long id,
             @RequestParam String phone,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size) {
         try {
             Long userId = getCurrentUserId();
-            Page<SmsMessage> messages = smsService.getConversationMessages(id, phone, userId, page, size);
-            return ResponseEntity.ok(ApiResponse.success(messages));
+            var messages = smsService.getConversationMessages(id, phone, userId, page, size);
+            return ResponseEntity.ok(ApiResponse.success(PagedMessagesResponse.from(messages)));
         } catch (Exception e) {
             log.error("Failed to get messages", e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
