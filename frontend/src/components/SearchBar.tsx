@@ -24,8 +24,8 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     onSearch({
       keyword: keyword || undefined,
       phone: phone || undefined,
-      start_time: startTime || undefined,
-      end_time: endTime || undefined,
+      start_time: startTime ? new Date(startTime).toISOString() : undefined,
+      end_time: endTime ? new Date(endTime).toISOString() : undefined,
     });
   };
 

@@ -26,14 +26,21 @@ interface LocaleContextType {
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
+function getBrowserTimeZone(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const { user, refreshUser } = useAuth();
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [mounted, setMounted] = useState(false);
+  const [timeZone, setTimeZone] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setLocaleState(getStoredLocale());
     setMounted(true);
+    setTimeZone(getBrowserTimeZone());
   }, []);
 
   useEffect(() => {
@@ -64,7 +71,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LocaleContext.Provider value={value}>
-      <NextIntlClientProvider locale={locale} messages={messages[locale]} timeZone="UTC">
+      <NextIntlClientProvider locale={locale} messages={messages[locale]} timeZone={timeZone}>
         {children}
       </NextIntlClientProvider>
     </LocaleContext.Provider>

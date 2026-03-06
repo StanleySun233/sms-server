@@ -13,6 +13,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -144,14 +146,22 @@ public class SmsController {
             @RequestParam(required = false) String end_time) {
         try {
             Long userId = getCurrentUserId();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            LocalDateTime startTime = start_time != null ? LocalDateTime.parse(start_time, formatter) : null;
-            LocalDateTime endTime = end_time != null ? LocalDateTime.parse(end_time, formatter) : null;
+            LocalDateTime startTime = start_time != null ? parseUtcLocalDateTime(start_time) : null;
+            LocalDateTime endTime = end_time != null ? parseUtcLocalDateTime(end_time) : null;
             List<SmsMessage> messages = smsService.searchMessages(id, receiverPhone, keyword, phone, startTime, endTime, userId);
             return ResponseEntity.ok(ApiResponse.success(messages));
         } catch (Exception e) {
             log.error("Failed to search messages", e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
+    }
+
+    private static LocalDateTime parseUtcLocalDateTime(String s) {
+        if (s.contains("Z") || s.matches(".*[+-]\\d{2}:?\\d{2}$")) {
+            return OffsetDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                    .toInstant().atZone(ZoneOffset.UTC).toLocalDateTime();
+        }
+        String normalized = s.length() == 16 ? s + ":00" : s;
+        return LocalDateTime.parse(normalized, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 }

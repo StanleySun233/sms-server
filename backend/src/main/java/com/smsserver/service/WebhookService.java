@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -69,7 +70,7 @@ public class WebhookService {
         WebhookResponse response = new WebhookResponse();
         for (PendingSms task : pendingTasks) {
             task.setStatus("sent");
-            task.setSentAt(LocalDateTime.now());
+            task.setSentAt(LocalDateTime.now(ZoneOffset.UTC));
             pendingSmsMapper.updateById(task);
             LambdaQueryWrapper<SmsMessage> q = new LambdaQueryWrapper<>();
             q.eq(SmsMessage::getPendingSmsId, task.getId());
@@ -110,18 +111,11 @@ public class WebhookService {
             smsMessage.setDirection("received");
             smsMessage.setStatus("delivered");
 
-            // Parse timestamp
             if (msg.getTimestamp() != null) {
-                try {
-                    smsMessage.setCreatedAt(
-                        LocalDateTime.parse(msg.getTimestamp(), DateTimeFormatter.ISO_DATE_TIME)
-                    );
-                } catch (Exception e) {
-                    log.warn("Failed to parse timestamp: {}", msg.getTimestamp());
-                    smsMessage.setCreatedAt(LocalDateTime.now());
-                }
+                LocalDateTime utc = parseToUtcLocalDateTime(msg.getTimestamp());
+                smsMessage.setCreatedAt(utc != null ? utc : LocalDateTime.now(ZoneOffset.UTC));
             } else {
-                smsMessage.setCreatedAt(LocalDateTime.now());
+                smsMessage.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
             }
 
             smsMessageMapper.insert(smsMessage);
@@ -134,22 +128,28 @@ public class WebhookService {
             missedCall.setDeviceId(deviceId);
             missedCall.setPhoneNumber(call.getPhone());
 
-            // Parse timestamp
             if (call.getTimestamp() != null) {
-                try {
-                    missedCall.setCallTime(
-                        LocalDateTime.parse(call.getTimestamp(), DateTimeFormatter.ISO_DATE_TIME)
-                    );
-                } catch (Exception e) {
-                    log.warn("Failed to parse timestamp: {}", call.getTimestamp());
-                    missedCall.setCallTime(LocalDateTime.now());
-                }
+                LocalDateTime utc = parseToUtcLocalDateTime(call.getTimestamp());
+                missedCall.setCallTime(utc != null ? utc : LocalDateTime.now(ZoneOffset.UTC));
             } else {
-                missedCall.setCallTime(LocalDateTime.now());
+                missedCall.setCallTime(LocalDateTime.now(ZoneOffset.UTC));
             }
 
-            missedCall.setCreatedAt(LocalDateTime.now());
+            missedCall.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
             missedCallMapper.insert(missedCall);
+        }
+    }
+
+    private LocalDateTime parseToUtcLocalDateTime(String timestamp) {
+        try {
+            if (timestamp.contains("Z") || timestamp.matches(".*[+-]\\d{2}:?\\d{2}$")) {
+                return OffsetDateTime.parse(timestamp, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                        .toInstant().atZone(ZoneOffset.UTC).toLocalDateTime();
+            }
+            return LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        } catch (Exception e) {
+            log.warn("Failed to parse timestamp: {}", timestamp);
+            return null;
         }
     }
 
@@ -158,7 +158,7 @@ public class WebhookService {
         log.setDeviceId(device.getId());
         log.setOldPhoneNumber(device.getCurrentPhoneNumber());
         log.setNewPhoneNumber(newPhoneNumber);
-        log.setChangedAt(LocalDateTime.now());
+        log.setChangedAt(LocalDateTime.now(ZoneOffset.UTC));
         simChangeLogMapper.insert(log);
 
         this.log.info("SIM card changed for device {}: {} -> {}",

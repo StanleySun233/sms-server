@@ -6,12 +6,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Health check controller
- */
 @RestController
 @RequestMapping("")
 public class HealthController {
@@ -20,7 +18,7 @@ public class HealthController {
     public ApiResponse<Map<String, Object>> health() {
         Map<String, Object> healthData = new HashMap<>();
         healthData.put("status", "UP");
-        healthData.put("timestamp", LocalDateTime.now());
+        healthData.put("timestamp", LocalDateTime.now(ZoneOffset.UTC));
         healthData.put("service", "SMS Server Backend");
         healthData.put("version", "1.0.0");
 

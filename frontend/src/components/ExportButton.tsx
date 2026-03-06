@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { smsApi } from '@/lib/api';
 import { ElMessage } from 'element-plus';
 import { SmsMessage } from '@/lib/types';
+import { formatDateTime } from '@/lib/dateUtils';
 
 interface ExportButtonProps {
   deviceId: number;
@@ -16,12 +17,6 @@ function escapeCsvCell(s: string): string {
     return '"' + s.replace(/"/g, '""') + '"';
   }
   return s;
-}
-
-function formatDateTime(iso?: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toISOString().replace('T', ' ').slice(0, 19);
 }
 
 function buildCsv(messages: SmsMessage[]): string {
@@ -37,7 +32,7 @@ function buildCsv(messages: SmsMessage[]): string {
         m.direction,
         m.status,
         formatDateTime(m.createdAt),
-        formatDateTime(m.readAt ?? null),
+        m.readAt ? formatDateTime(m.readAt) : '',
       ].join(',')
     );
   return BOM + header + '\n' + rows.join('\n');
