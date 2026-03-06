@@ -45,6 +45,7 @@ logging:
   level:
     root: INFO
     com.smsserver: INFO
+    com.smsserver.mapper: WARN
     org.springframework.security: WARN
   file:
     name: /app/logs/sms-server.log
