@@ -4,22 +4,22 @@
 FROM eclipse-temurin:18-jdk AS build
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml
-COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
+# Install Maven
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    maven \
+    && rm -rf /var/lib/apt/lists/*
 
-# Make Maven wrapper executable (for Unix systems)
-RUN chmod +x mvnw
+# Copy pom.xml first for dependency caching
+COPY pom.xml .
 
 # Download dependencies (cached layer)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copy source code
 COPY src ./src
 
 # Build application
-RUN ./mvnw clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B
 
 # Production stage
 FROM eclipse-temurin:18-jre
