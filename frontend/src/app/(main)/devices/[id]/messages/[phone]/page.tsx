@@ -98,19 +98,51 @@ export default function ConversationPage() {
     }
   }, [deviceId, receiverPhone, selectedSender]);
 
+  const mergeMessagesFromRecords = (records: SmsMessage[]) => {
+    if (!records.length) return;
+    setMessages((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const r of records) {
+        const existing = byId.get(r.id);
+        if (existing) {
+          if (existing.status !== r.status || existing.updatedAt !== r.updatedAt) {
+            byId.set(r.id, { ...existing, status: r.status, updatedAt: r.updatedAt });
+          }
+        } else {
+          byId.set(r.id, r);
+        }
+      }
+      return Array.from(byId.values()).sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+    });
+  };
+
   useEffect(() => {
     if (!selectedSender || selectedSender === '__new__') return;
-    const interval = setInterval(async () => {
+    const tick = async () => {
       const response = await smsApi.getMessages(deviceId, selectedSender, 1, 50, receiverPhone);
       const data = response.data.data;
-      if (!data?.records?.length) return;
-      const records = data.records as SmsMessage[];
-      const current = messagesRef.current;
-      const newMsgs = records.filter((r) => !current.some((m) => m.id === r.id));
-      if (newMsgs.length === 0) return;
-      setMessages((prev) => [...prev, ...newMsgs.reverse()]);
-    }, 30000);
-    return () => clearInterval(interval);
+      if (data?.records?.length) mergeMessagesFromRecords(data.records as SmsMessage[]);
+    };
+    const interval = setInterval(tick, 30000);
+    const onFocus = () => tick();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [deviceId, receiverPhone, selectedSender]);
+
+  useEffect(() => {
+    if (!selectedSender || selectedSender === '__new__') return;
+    const t = setTimeout(() => {
+      smsApi.getMessages(deviceId, selectedSender, 1, 50, receiverPhone).then((res) => {
+        const data = res.data.data;
+        if (data?.records?.length) mergeMessagesFromRecords(data.records as SmsMessage[]);
+      });
+    }, 2000);
+    return () => clearTimeout(t);
   }, [deviceId, receiverPhone, selectedSender]);
 
   useEffect(() => {

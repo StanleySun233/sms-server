@@ -1,5 +1,6 @@
 package com.smsserver.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smsserver.dto.WebhookRequest;
 import com.smsserver.dto.WebhookResponse;
 import com.smsserver.entity.*;
@@ -70,10 +71,13 @@ public class WebhookService {
             task.setStatus("sent");
             task.setSentAt(LocalDateTime.now());
             pendingSmsMapper.updateById(task);
-            com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<SmsMessage> updateWrapper =
-                    new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
-            updateWrapper.eq(SmsMessage::getPendingSmsId, task.getId()).set(SmsMessage::getStatus, "sent");
-            smsMessageMapper.update(null, updateWrapper);
+            LambdaQueryWrapper<SmsMessage> q = new LambdaQueryWrapper<>();
+            q.eq(SmsMessage::getPendingSmsId, task.getId());
+            SmsMessage smsRow = smsMessageMapper.selectOne(q);
+            if (smsRow != null) {
+                smsRow.setStatus("sent");
+                smsMessageMapper.updateById(smsRow);
+            }
             response.getCommands().add(
                 WebhookResponse.Command.sendSms(
                     task.getId(),

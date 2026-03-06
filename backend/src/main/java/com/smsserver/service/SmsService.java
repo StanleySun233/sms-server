@@ -195,7 +195,17 @@ public class SmsService {
                 wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
             }
         }
-        return smsMessageMapper.selectPage(page, wrapper);
+        page = smsMessageMapper.selectPage(page, wrapper);
+        for (SmsMessage msg : page.getRecords()) {
+            if (msg.getPendingSmsId() != null && "pending".equals(msg.getStatus())) {
+                PendingSms pending = pendingSmsMapper.selectById(msg.getPendingSmsId());
+                if (pending != null && !"pending".equals(pending.getStatus())) {
+                    msg.setStatus(pending.getStatus());
+                    smsMessageMapper.updateById(msg);
+                }
+            }
+        }
+        return page;
     }
 
     @Transactional
