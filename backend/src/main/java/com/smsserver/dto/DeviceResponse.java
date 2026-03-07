@@ -13,6 +13,7 @@ public class DeviceResponse {
     private String status;
     private String lastHeartbeatAt;
     private String currentPhoneNumber;
+    private Integer signalStrength;
     private LocalDateTime createdAt;
 
     public static DeviceResponse fromEntity(Device device, String status) {
@@ -25,6 +26,7 @@ public class DeviceResponse {
                 ? device.getLastHeartbeatAt().atZone(ZoneOffset.UTC).toInstant().toString()
                 : null);
         response.setCurrentPhoneNumber(device.getCurrentPhoneNumber());
+        response.setSignalStrength(device.getSignalStrength());
         response.setCreatedAt(device.getCreatedAt());
         return response;
     }

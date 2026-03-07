@@ -20,6 +20,8 @@ public class Device {
 
     private String imei;
 
+    private Integer signalStrength;
+
     private LocalDateTime lastHeartbeatAt;
 
     @TableField(fill = FieldFill.INSERT)

@@ -41,6 +41,7 @@ export interface Device {
   status: 'online' | 'warning' | 'offline';
   lastHeartbeatAt?: string;
   currentPhoneNumber?: string;
+  signalStrength?: number;
   createdAt: string;
 }
 
@@ -125,6 +126,7 @@ export interface DeviceStats {
   unreadCalls: number;
   lastHeartbeatAt?: string;
   currentPhoneNumber?: string;
+  signalStrength?: number;
 }
 
 export interface DashboardStatsResponse {

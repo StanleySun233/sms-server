@@ -22,5 +22,6 @@ public class DashboardStatsResponse {
         private int unreadCalls;
         private String lastHeartbeatAt;
         private String currentPhoneNumber;
+        private Integer signalStrength;
     }
 }

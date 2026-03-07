@@ -91,6 +91,7 @@ public class DashboardService {
                     : null
             );
             stats.setCurrentPhoneNumber(device.getCurrentPhoneNumber());
+            stats.setSignalStrength(device.getSignalStrength());
 
             deviceStatsList.add(stats);
             deviceIds.add(device.getId());

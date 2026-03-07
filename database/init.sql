@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS devices (
     webhook_token CHAR(16) NOT NULL UNIQUE COMMENT 'Unique 16-char token for webhook authentication',
     current_phone_number VARCHAR(20) DEFAULT NULL COMMENT 'Current SIM card phone number',
     imei VARCHAR(20) DEFAULT NULL COMMENT 'Device IMEI number',
+    signal_strength INT DEFAULT NULL COMMENT 'Signal strength in dBm (RSRP value)',
     last_heartbeat_at DATETIME(3) NULL DEFAULT NULL COMMENT 'Last webhook heartbeat time',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Device creation time',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

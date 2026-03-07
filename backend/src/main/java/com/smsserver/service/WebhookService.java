@@ -41,6 +41,7 @@ public class WebhookService {
         device.setLastHeartbeatAt(LocalDateTime.now(ZoneOffset.UTC));
         if (request.getDeviceInfo() != null) {
             device.setImei(request.getDeviceInfo().getImei());
+            device.setSignalStrength(request.getDeviceInfo().getSignalStrength());
 
             // Check for SIM card change
             String newPhoneNumber = request.getDeviceInfo().getPhoneNumber();
