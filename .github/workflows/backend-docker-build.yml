@@ -54,6 +54,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
+            type=semver,pattern=v{{version}}
             type=semver,pattern={{version}},prefix=backend-v
             type=semver,pattern={{major}}.{{minor}},prefix=backend-v
             type=semver,pattern={{major}},prefix=backend-v
