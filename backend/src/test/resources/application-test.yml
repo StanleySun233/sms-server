@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: sms-server-test
+
+  # Test database - use H2 in-memory database for tests
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # Test Redis - embedded or mock
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# Disable security for tests
+spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+# MyBatis-Plus configuration for tests
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+# Logging for tests
+logging:
+  level:
+    root: WARN
+    com.smsserver: DEBUG
