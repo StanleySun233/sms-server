@@ -1,6 +1,6 @@
 package com.smsserver.controller;
 
-import com.smsserver.dto.DashboardStatsResponse;
+import com.smsserver.dto.dashboard.DashboardStatsResponse;
 import com.smsserver.entity.User;
 import com.smsserver.service.DashboardService;
 import lombok.RequiredArgsConstructor;

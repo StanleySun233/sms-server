@@ -1,11 +1,11 @@
 package com.smsserver.controller;
 
-import com.smsserver.dto.ChangePasswordRequest;
-import com.smsserver.dto.LoginRequest;
-import com.smsserver.dto.RegisterRequest;
-import com.smsserver.dto.UpdatePreferencesRequest;
-import com.smsserver.dto.UpdateProfileRequest;
-import com.smsserver.dto.UserResponse;
+import com.smsserver.dto.auth.ChangePasswordRequest;
+import com.smsserver.dto.auth.LoginRequest;
+import com.smsserver.dto.auth.RegisterRequest;
+import com.smsserver.dto.auth.UpdatePreferencesRequest;
+import com.smsserver.dto.auth.UpdateProfileRequest;
+import com.smsserver.dto.auth.UserResponse;
 import com.smsserver.entity.User;
 import com.smsserver.service.AuthService;
 import com.smsserver.service.UserPreferenceService;

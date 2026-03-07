@@ -49,5 +49,5 @@ logging:
 # JWT configuration
 jwt:
   secret: ${JWT_SECRET:changeme-this-is-a-very-long-secret-key-for-jwt-token-generation-minimum-512-bits}
-  expiration: 86400000  # 24 hours in milliseconds
+  expiration: 3600000
   refresh-expiration: 604800000  # 7 days in milliseconds

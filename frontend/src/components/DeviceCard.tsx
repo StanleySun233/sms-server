@@ -35,6 +35,16 @@ export default function DeviceCard({ device }: DeviceCardProps) {
         <div>
           <span className="font-medium">{t('phone')}：</span> {device.currentPhoneNumber || t('neverOnline')}
         </div>
+        {device.imei != null && device.imei !== '' && (
+          <div>
+            <span className="font-medium">{t('imei')}：</span> {device.imei}
+          </div>
+        )}
+        {device.signalStrength != null && (
+          <div>
+            <span className="font-medium">{t('signalStrength')}：</span> {device.signalStrength} dBm
+          </div>
+        )}
         <div>
           <span className="font-medium">{t('heartbeatLabel')}</span>{' '}
           {device.lastHeartbeatAt ? parseUtcAndFormatLocal(device.lastHeartbeatAt) : t('neverOnline')}

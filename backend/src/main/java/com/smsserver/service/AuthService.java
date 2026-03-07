@@ -1,8 +1,8 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.smsserver.dto.LoginRequest;
-import com.smsserver.dto.RegisterRequest;
+import com.smsserver.dto.auth.LoginRequest;
+import com.smsserver.dto.auth.RegisterRequest;
 import com.smsserver.entity.User;
 import com.smsserver.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +54,13 @@ public class AuthService {
 
     public User getUserById(Long userId) {
         return userId != null ? userMapper.selectById(userId) : null;
+    }
+
+    public User getUserByUsername(String username) {
+        if (username == null || username.isBlank()) return null;
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, username.trim());
+        return userMapper.selectOne(wrapper);
     }
 
     @Transactional

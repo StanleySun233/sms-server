@@ -24,6 +24,12 @@ local function buildRequest()
         signalStrength = type(rsrp) == "number" and rsrp or nil,
         batteryLevel = nil
     }
+    local util_location = require("util_location")
+    local lat, lng = util_location.get()
+    if type(lat) == "number" and lat ~= 0 and type(lng) == "number" and lng ~= 0 then
+        device_info.latitude = lat
+        device_info.longitude = lng
+    end
     local req = {
         deviceInfo = device_info,
         newMessages = pending_new_messages,

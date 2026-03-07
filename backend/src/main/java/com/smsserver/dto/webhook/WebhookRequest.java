@@ -1,7 +1,8 @@
-package com.smsserver.dto;
+package com.smsserver.dto.webhook;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
+
 import java.util.List;
 
 @Data
@@ -18,18 +19,20 @@ public class WebhookRequest {
         private String imei;
         private Integer signalStrength;
         private Integer batteryLevel;
+        private Double latitude;
+        private Double longitude;
     }
 
     @Data
     public static class NewMessage {
         private String phone;
         private String content;
-        private String timestamp; // ISO 8601 format
+        private String timestamp;
     }
 
     @Data
     public static class MissedCall {
         private String phone;
-        private String timestamp; // ISO 8601 format
+        private String timestamp;
     }
 }

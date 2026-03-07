@@ -1,9 +1,9 @@
 package com.smsserver.controller;
 
-import com.smsserver.dto.ApiResponse;
-import com.smsserver.dto.MarkCallsReadRequest;
-import com.smsserver.dto.MissedCallResponse;
-import com.smsserver.dto.MissedCallSummary;
+import com.smsserver.dto.common.ApiResponse;
+import com.smsserver.dto.missedcall.MarkCallsReadRequest;
+import com.smsserver.dto.missedcall.MissedCallResponse;
+import com.smsserver.dto.missedcall.MissedCallSummary;
 import com.smsserver.entity.User;
 import com.smsserver.service.MissedCallService;
 import lombok.RequiredArgsConstructor;

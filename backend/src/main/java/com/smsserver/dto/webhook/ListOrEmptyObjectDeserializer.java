@@ -1,4 +1,4 @@
-package com.smsserver.dto;
+package com.smsserver.dto.webhook;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;

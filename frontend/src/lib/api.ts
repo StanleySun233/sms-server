@@ -84,6 +84,10 @@ export const deviceApi = {
   create: (data: { alias: string }) => apiClient.post('/devices', data),
   update: (id: number, data: { alias: string }) => apiClient.put(`/devices/${id}`, data),
   delete: (id: number) => apiClient.delete(`/devices/${id}`),
+  checkTransferUsername: (username: string) =>
+    apiClient.get<{ exists: boolean; username: string | null }>('/devices/transfer/check-username', { params: { username } }),
+  transfer: (deviceId: number, username: string) =>
+    apiClient.post(`/devices/${deviceId}/transfer`, { username }),
 };
 
 // SMS API functions

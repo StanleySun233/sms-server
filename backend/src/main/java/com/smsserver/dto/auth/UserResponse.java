@@ -1,7 +1,8 @@
-package com.smsserver.dto;
+package com.smsserver.dto.auth;
 
 import com.smsserver.entity.User;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 

@@ -1,11 +1,9 @@
-package com.smsserver.dto;
+package com.smsserver.dto.missedcall;
 
 import lombok.Data;
+
 import java.util.List;
 
-/**
- * Request DTO for marking calls as read
- */
 @Data
 public class MarkCallsReadRequest {
     private List<Long> callIds;

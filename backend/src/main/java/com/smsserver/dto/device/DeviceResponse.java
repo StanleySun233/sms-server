@@ -1,7 +1,8 @@
-package com.smsserver.dto;
+package com.smsserver.dto.device;
 
 import com.smsserver.entity.Device;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -13,7 +14,10 @@ public class DeviceResponse {
     private String status;
     private String lastHeartbeatAt;
     private String currentPhoneNumber;
+    private String imei;
     private Integer signalStrength;
+    private Double latitude;
+    private Double longitude;
     private LocalDateTime createdAt;
 
     public static DeviceResponse fromEntity(Device device, String status) {
@@ -26,7 +30,10 @@ public class DeviceResponse {
                 ? device.getLastHeartbeatAt().atZone(ZoneOffset.UTC).toInstant().toString()
                 : null);
         response.setCurrentPhoneNumber(device.getCurrentPhoneNumber());
+        response.setImei(device.getImei());
         response.setSignalStrength(device.getSignalStrength());
+        response.setLatitude(device.getLatitude() != null ? device.getLatitude().doubleValue() : null);
+        response.setLongitude(device.getLongitude() != null ? device.getLongitude().doubleValue() : null);
         response.setCreatedAt(device.getCreatedAt());
         return response;
     }

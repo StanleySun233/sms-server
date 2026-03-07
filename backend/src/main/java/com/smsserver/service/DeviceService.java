@@ -1,8 +1,10 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.smsserver.dto.CreateDeviceRequest;
-import com.smsserver.dto.UpdateDeviceRequest;
+import com.smsserver.dto.device.CheckUsernameResponse;
+import com.smsserver.dto.device.CreateDeviceRequest;
+import com.smsserver.dto.device.UpdateDeviceRequest;
+import com.smsserver.entity.User;
 import com.smsserver.entity.Device;
 import com.smsserver.mapper.DeviceMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import java.util.Random;
 @Slf4j
 public class DeviceService {
     private final DeviceMapper deviceMapper;
+    private final AuthService authService;
 
     private static final String TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
     private static final int TOKEN_LENGTH = 16;
@@ -150,5 +153,42 @@ public class DeviceService {
      */
     public Device findByWebhookToken(String token) {
         return deviceMapper.findByWebhookToken(token);
+    }
+
+    public CheckUsernameResponse checkTransferUsername(Long currentUserId, String username) {
+        if (username == null || username.isBlank()) {
+            return new CheckUsernameResponse(false, null);
+        }
+        String trimmed = username.trim();
+        if (trimmed.equalsIgnoreCase(getCurrentUserUsername(currentUserId))) {
+            throw new RuntimeException("Cannot transfer to self");
+        }
+        User target = authService.getUserByUsername(trimmed);
+        return new CheckUsernameResponse(target != null, target != null ? target.getUsername() : null);
+    }
+
+    private String getCurrentUserUsername(Long userId) {
+        User u = authService.getUserById(userId);
+        return u != null ? u.getUsername() : null;
+    }
+
+    @Transactional
+    public Device transferDevice(Long deviceId, Long currentUserId, String username) {
+        Device device = getDevice(deviceId, currentUserId);
+        if (username == null || username.isBlank()) {
+            throw new RuntimeException("Username is required");
+        }
+        String trimmed = username.trim();
+        User target = authService.getUserByUsername(trimmed);
+        if (target == null) {
+            throw new RuntimeException("User not found");
+        }
+        if (target.getId().equals(currentUserId)) {
+            throw new RuntimeException("Cannot transfer to self");
+        }
+        device.setUserId(target.getId());
+        deviceMapper.updateById(device);
+        log.info("Transferred device {} from user {} to user {}", deviceId, currentUserId, target.getId());
+        return device;
     }
 }

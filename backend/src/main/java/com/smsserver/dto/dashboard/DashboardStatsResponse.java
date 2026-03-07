@@ -1,6 +1,7 @@
-package com.smsserver.dto;
+package com.smsserver.dto.dashboard;
 
 import lombok.Data;
+
 import java.util.List;
 
 @Data
@@ -22,6 +23,7 @@ public class DashboardStatsResponse {
         private int unreadCalls;
         private String lastHeartbeatAt;
         private String currentPhoneNumber;
+        private String imei;
         private Integer signalStrength;
     }
 }

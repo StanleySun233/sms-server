@@ -1,5 +1,6 @@
-package com.smsserver.dto;
+package com.smsserver.dto.sms;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smsserver.entity.SmsMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,7 +18,7 @@ public class PagedMessagesResponse {
     private long size;
     private boolean last;
 
-    public static PagedMessagesResponse from(com.baomidou.mybatisplus.extension.plugins.pagination.Page<SmsMessage> page) {
+    public static PagedMessagesResponse from(Page<SmsMessage> page) {
         long pages = page.getPages();
         return new PagedMessagesResponse(
                 page.getRecords(),

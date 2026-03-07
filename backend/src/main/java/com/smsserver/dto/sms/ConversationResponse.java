@@ -1,6 +1,7 @@
-package com.smsserver.dto;
+package com.smsserver.dto.sms;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data

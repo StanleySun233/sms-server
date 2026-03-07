@@ -1,8 +1,10 @@
 package com.smsserver.controller;
 
-import com.smsserver.dto.CreateDeviceRequest;
-import com.smsserver.dto.DeviceResponse;
-import com.smsserver.dto.UpdateDeviceRequest;
+import com.smsserver.dto.device.CheckUsernameResponse;
+import com.smsserver.dto.device.CreateDeviceRequest;
+import com.smsserver.dto.device.DeviceResponse;
+import com.smsserver.dto.device.TransferDeviceRequest;
+import com.smsserver.dto.device.UpdateDeviceRequest;
 import com.smsserver.entity.Device;
 import com.smsserver.entity.User;
 import com.smsserver.service.DeviceService;
@@ -41,6 +43,20 @@ public class DeviceController {
         Device device = deviceService.createDevice(user.getId(), request);
         String status = deviceService.calculateDeviceStatus(device);
         return ResponseEntity.ok(DeviceResponse.fromEntity(device, status));
+    }
+
+    @GetMapping("/transfer/check-username")
+    public ResponseEntity<?> checkTransferUsername(@RequestParam String username) {
+        try {
+            User user = getCurrentUser();
+            CheckUsernameResponse resp = deviceService.checkTransferUsername(user.getId(), username);
+            return ResponseEntity.ok(resp);
+        } catch (RuntimeException e) {
+            if ("Cannot transfer to self".equals(e.getMessage())) {
+                return ResponseEntity.badRequest().body(e.getMessage());
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @GetMapping("/{id}")
@@ -93,6 +109,27 @@ public class DeviceController {
             }
             if ("Device not found".equals(e.getMessage())) {
                 return ResponseEntity.status(404).body(e.getMessage());
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/transfer")
+    public ResponseEntity<?> transferDevice(@PathVariable Long id, @Valid @RequestBody TransferDeviceRequest request) {
+        try {
+            User user = getCurrentUser();
+            Device device = deviceService.transferDevice(id, user.getId(), request.getUsername());
+            String status = deviceService.calculateDeviceStatus(device);
+            return ResponseEntity.ok(DeviceResponse.fromEntity(device, status));
+        } catch (RuntimeException e) {
+            if ("Access denied".equals(e.getMessage())) {
+                return ResponseEntity.status(403).body(e.getMessage());
+            }
+            if ("Device not found".equals(e.getMessage())) {
+                return ResponseEntity.status(404).body(e.getMessage());
+            }
+            if ("User not found".equals(e.getMessage()) || "Cannot transfer to self".equals(e.getMessage()) || "Username is required".equals(e.getMessage())) {
+                return ResponseEntity.badRequest().body(e.getMessage());
             }
             return ResponseEntity.badRequest().body(e.getMessage());
         }

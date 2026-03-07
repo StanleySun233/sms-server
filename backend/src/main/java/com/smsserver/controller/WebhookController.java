@@ -1,7 +1,7 @@
 package com.smsserver.controller;
 
-import com.smsserver.dto.WebhookRequest;
-import com.smsserver.dto.WebhookResponse;
+import com.smsserver.dto.webhook.WebhookRequest;
+import com.smsserver.dto.webhook.WebhookResponse;
 import com.smsserver.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

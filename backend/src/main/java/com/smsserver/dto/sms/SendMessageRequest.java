@@ -1,4 +1,4 @@
-package com.smsserver.dto;
+package com.smsserver.dto.sms;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

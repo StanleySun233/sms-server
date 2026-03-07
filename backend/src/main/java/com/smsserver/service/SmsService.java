@@ -2,8 +2,8 @@ package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.smsserver.dto.ConversationResponse;
-import com.smsserver.dto.LineSummaryResponse;
+import com.smsserver.dto.sms.ConversationResponse;
+import com.smsserver.dto.sms.LineSummaryResponse;
 import com.smsserver.entity.Device;
 import com.smsserver.entity.PendingSms;
 import com.smsserver.entity.SimChangeLog;

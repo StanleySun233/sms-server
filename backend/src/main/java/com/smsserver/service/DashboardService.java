@@ -1,7 +1,7 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.smsserver.dto.DashboardStatsResponse;
+import com.smsserver.dto.dashboard.DashboardStatsResponse;
 import com.smsserver.entity.Device;
 import com.smsserver.entity.MissedCall;
 import com.smsserver.entity.SmsMessage;
@@ -91,6 +91,7 @@ public class DashboardService {
                     : null
             );
             stats.setCurrentPhoneNumber(device.getCurrentPhoneNumber());
+            stats.setImei(device.getImei());
             stats.setSignalStrength(device.getSignalStrength());
 
             deviceStatsList.add(stats);

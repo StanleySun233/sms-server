@@ -41,7 +41,10 @@ export interface Device {
   status: 'online' | 'warning' | 'offline';
   lastHeartbeatAt?: string;
   currentPhoneNumber?: string;
+  imei?: string;
   signalStrength?: number;
+  latitude?: number;
+  longitude?: number;
   createdAt: string;
 }
 
@@ -126,6 +129,7 @@ export interface DeviceStats {
   unreadCalls: number;
   lastHeartbeatAt?: string;
   currentPhoneNumber?: string;
+  imei?: string;
   signalStrength?: number;
 }
 

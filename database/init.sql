@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS devices (
     imei VARCHAR(20) DEFAULT NULL COMMENT 'Device IMEI number',
     signal_strength INT DEFAULT NULL COMMENT 'Signal strength in dBm (RSRP value)',
     last_heartbeat_at DATETIME(3) NULL DEFAULT NULL COMMENT 'Last webhook heartbeat time',
+    latitude DECIMAL(10, 7) NULL COMMENT 'Last reported latitude WGS84',
+    longitude DECIMAL(11, 7) NULL COMMENT 'Last reported longitude WGS84',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'Device creation time',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
@@ -131,3 +133,22 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     UNIQUE KEY uk_user_pref (user_id, pref_key),
     KEY idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='User preferences';
+
+-- =====================================================
+-- Table: webhook_log
+-- Description: Webhook callback request log
+-- =====================================================
+CREATE TABLE IF NOT EXISTS webhook_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    device_id BIGINT NULL COMMENT 'Device ID resolved from token; NULL when token invalid',
+    webhook_token CHAR(16) NULL COMMENT 'Token from request URL',
+    received_at DATETIME(3) NOT NULL COMMENT 'Server receive time UTC',
+    new_messages_count INT NOT NULL DEFAULT 0 COMMENT 'New messages in this request',
+    missed_calls_count INT NOT NULL DEFAULT 0 COMMENT 'Missed calls in this request',
+    commands_count INT NOT NULL DEFAULT 0 COMMENT 'Commands returned in response',
+    latitude DECIMAL(10, 7) NULL COMMENT 'Device latitude WGS84',
+    longitude DECIMAL(11, 7) NULL COMMENT 'Device longitude WGS84',
+    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE SET NULL,
+    INDEX idx_device_id (device_id),
+    INDEX idx_received_at (received_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Webhook callback log';

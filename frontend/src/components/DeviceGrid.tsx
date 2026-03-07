@@ -54,7 +54,18 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
               <span className="font-medium">📱 {t('phone')}：</span>
               <span>{device.currentPhoneNumber || t('neverOnline')}</span>
             </div>
-
+            {device.imei != null && device.imei !== '' && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium">🔢 {t('imei')}：</span>
+                <span>{device.imei}</span>
+              </div>
+            )}
+            {device.signalStrength != null && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium">📶 {t('signalStrength')}：</span>
+                <span>{device.signalStrength} dBm</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="font-medium">💓 {t('heartbeatLabel')}</span>
               <span>{device.lastHeartbeatAt ? parseUtcAndFormatLocal(device.lastHeartbeatAt) : t('neverOnline')}</span>

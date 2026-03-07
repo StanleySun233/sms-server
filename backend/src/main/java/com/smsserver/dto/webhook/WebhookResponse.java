@@ -1,6 +1,7 @@
-package com.smsserver.dto;
+package com.smsserver.dto.webhook;
 
 import lombok.Data;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +11,7 @@ public class WebhookResponse {
 
     @Data
     public static class Command {
-        private String type; // "send_sms"
+        private String type;
         private String taskId;
         private String phone;
         private String content;

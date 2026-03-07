@@ -1,12 +1,10 @@
-package com.smsserver.dto;
+package com.smsserver.dto.missedcall;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
-/**
- * DTO for missed call summary grouped by phone number
- */
 @Data
 @AllArgsConstructor
 public class MissedCallSummary {

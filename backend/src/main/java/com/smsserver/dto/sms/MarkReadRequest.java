@@ -1,7 +1,8 @@
-package com.smsserver.dto;
+package com.smsserver.dto.sms;
 
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+
 import java.util.List;
 
 @Data

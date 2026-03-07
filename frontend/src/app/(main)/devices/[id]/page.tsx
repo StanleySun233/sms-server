@@ -19,6 +19,11 @@ export default function DeviceDetailPage() {
 
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferUsername, setTransferUsername] = useState('');
+  const [transferConfirmTarget, setTransferConfirmTarget] = useState<string | null>(null);
+  const [transferChecking, setTransferChecking] = useState(false);
+  const [transferSubmitting, setTransferSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchDevice = async () => {
@@ -41,6 +46,41 @@ export default function DeviceDetailPage() {
     await deviceApi.delete(deviceId);
     ElMessage.success(t('deleteSuccess'));
     router.push('/devices');
+  };
+
+  const openTransferDialog = () => {
+    setTransferUsername('');
+    setTransferConfirmTarget(null);
+    setTransferOpen(true);
+  };
+
+  const handleCheckUsername = async () => {
+    const username = transferUsername.trim();
+    if (!username) {
+      ElMessage.warning(t('enterUsername'));
+      return;
+    }
+    setTransferChecking(true);
+    setTransferConfirmTarget(null);
+    const res = await deviceApi.checkTransferUsername(username).then((r) => r.data).catch((err: any) => {
+      const msg = err.message && err.message.includes('transfer to self') ? t('cannotTransferToSelf') : (err.message || t('userNotFound'));
+      ElMessage.error(msg);
+      return null;
+    }).finally(() => setTransferChecking(false));
+    if (res && res.exists && res.username) setTransferConfirmTarget(res.username);
+  };
+
+  const handleTransferConfirm = async () => {
+    const username = transferConfirmTarget || transferUsername.trim();
+    if (!username) return;
+    setTransferSubmitting(true);
+    await deviceApi.transfer(deviceId, username).then(() => {
+      ElMessage.success(t('transferSuccess'));
+      setTransferOpen(false);
+      router.push('/devices');
+    }).catch((err: any) => {
+      ElMessage.error(err.message || t('userNotFound'));
+    }).finally(() => setTransferSubmitting(false));
   };
 
   if (loading) {
@@ -112,6 +152,37 @@ export default function DeviceDetailPage() {
               <div className="text-white text-lg">{device.currentPhoneNumber || t('neverOnline')}</div>
             </div>
 
+            {(device.imei != null && device.imei !== '') && (
+              <div>
+                <label className="block text-white/70 mb-2">{t('imei')}</label>
+                <div className="text-white text-lg">{device.imei}</div>
+              </div>
+            )}
+
+            {device.signalStrength != null && (
+              <div>
+                <label className="block text-white/70 mb-2">{t('signalStrength')}</label>
+                <div className="text-white text-lg">{device.signalStrength} dBm</div>
+              </div>
+            )}
+
+            {(device.latitude != null && device.longitude != null) && (
+              <div>
+                <label className="block text-white/70 mb-2">{t('location')}</label>
+                <div className="text-white text-lg">
+                  {device.latitude.toFixed(6)}, {device.longitude.toFixed(6)}
+                  <a
+                    href={`https://apis.map.qq.com/uri/v1/marker?coord_type=1&marker=title:;coord:${device.latitude},${device.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-3 text-amber-400 hover:underline"
+                  >
+                    {t('viewOnMap')}
+                  </a>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-white/70 mb-2">{t('lastHeartbeat')}</label>
               <div className="text-white text-lg">
@@ -139,6 +210,16 @@ export default function DeviceDetailPage() {
               {t('editDevice')}
             </button>
             <button
+              onClick={openTransferDialog}
+              className="px-6 py-3 rounded-lg font-medium transition-all duration-200"
+              style={{
+                backgroundColor: 'rgba(96, 165, 250, 0.5)',
+                color: '#fff',
+              }}
+            >
+              {t('transferDevice')}
+            </button>
+            <button
               onClick={handleDelete}
               className="px-6 py-3 rounded-lg font-medium transition-all duration-200"
               style={{
@@ -150,6 +231,77 @@ export default function DeviceDetailPage() {
             </button>
           </div>
         </div>
+
+        {transferOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+            onClick={() => !transferSubmitting && !transferChecking && setTransferOpen(false)}
+          >
+            <div
+              className="rounded-2xl p-6 w-full max-w-md shadow-xl"
+              style={{
+                backgroundColor: 'rgba(30,30,40,0.98)',
+                border: '1px solid rgba(255,255,255,0.2)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold text-white mb-4">{t('transferDevice')}</h3>
+              {transferConfirmTarget == null ? (
+                <>
+                  <input
+                    type="text"
+                    value={transferUsername}
+                    onChange={(e) => setTransferUsername(e.target.value)}
+                    placeholder={t('enterUsername')}
+                    className="w-full px-4 py-3 rounded-lg mb-4 text-white placeholder-white/50"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+                  />
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setTransferOpen(false)}
+                      className="px-4 py-2 rounded-lg text-white/80"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                    >
+                      {tCommon('cancel')}
+                    </button>
+                    <button
+                      onClick={handleCheckUsername}
+                      disabled={transferChecking}
+                      className="px-4 py-2 rounded-lg font-medium text-white"
+                      style={{ backgroundColor: '#60a5fa' }}
+                    >
+                      {transferChecking ? '...' : t('checkUsername')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-white/90 mb-2">{t('confirmTransfer', { username: transferConfirmTarget })}</p>
+                  <p className="text-white/60 text-sm mb-6">{t('transferHint')}</p>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setTransferConfirmTarget(null)}
+                      disabled={transferSubmitting}
+                      className="px-4 py-2 rounded-lg text-white/80"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                    >
+                      {tCommon('cancel')}
+                    </button>
+                    <button
+                      onClick={handleTransferConfirm}
+                      disabled={transferSubmitting}
+                      className="px-4 py-2 rounded-lg font-medium text-white"
+                      style={{ backgroundColor: '#60a5fa' }}
+                    >
+                      {transferSubmitting ? '...' : t('transferTo')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div
           className="rounded-2xl p-8 shadow-xl"

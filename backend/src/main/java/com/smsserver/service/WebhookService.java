@@ -1,8 +1,8 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.smsserver.dto.WebhookRequest;
-import com.smsserver.dto.WebhookResponse;
+import com.smsserver.dto.webhook.WebhookRequest;
+import com.smsserver.dto.webhook.WebhookResponse;
 import com.smsserver.entity.*;
 import com.smsserver.mapper.*;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -25,6 +26,7 @@ public class WebhookService {
     private final MissedCallMapper missedCallMapper;
     private final PendingSmsMapper pendingSmsMapper;
     private final SimChangeLogMapper simChangeLogMapper;
+    private final WebhookLogMapper webhookLogMapper;
     private final RedisService redisService;
 
     @Transactional
@@ -42,8 +44,12 @@ public class WebhookService {
         if (request.getDeviceInfo() != null) {
             device.setImei(request.getDeviceInfo().getImei());
             device.setSignalStrength(request.getDeviceInfo().getSignalStrength());
-
-            // Check for SIM card change
+            if (request.getDeviceInfo().getLatitude() != null) {
+                device.setLatitude(BigDecimal.valueOf(request.getDeviceInfo().getLatitude()));
+            }
+            if (request.getDeviceInfo().getLongitude() != null) {
+                device.setLongitude(BigDecimal.valueOf(request.getDeviceInfo().getLongitude()));
+            }
             String newPhoneNumber = request.getDeviceInfo().getPhoneNumber();
             if (newPhoneNumber != null && !newPhoneNumber.equals(device.getCurrentPhoneNumber())) {
                 logSimChange(device, newPhoneNumber);
@@ -96,6 +102,23 @@ public class WebhookService {
                 request.getNewMessages() != null ? request.getNewMessages().size() : 0,
                 request.getMissedCalls() != null ? request.getMissedCalls().size() : 0,
                 pendingTasks.size());
+
+        WebhookLog webhookLog = new WebhookLog();
+        webhookLog.setDeviceId(device.getId());
+        webhookLog.setWebhookToken(webhookToken);
+        webhookLog.setReceivedAt(LocalDateTime.now(ZoneOffset.UTC));
+        webhookLog.setNewMessagesCount(request.getNewMessages() != null ? request.getNewMessages().size() : 0);
+        webhookLog.setMissedCallsCount(request.getMissedCalls() != null ? request.getMissedCalls().size() : 0);
+        webhookLog.setCommandsCount(pendingTasks.size());
+        if (request.getDeviceInfo() != null) {
+            if (request.getDeviceInfo().getLatitude() != null) {
+                webhookLog.setLatitude(BigDecimal.valueOf(request.getDeviceInfo().getLatitude()));
+            }
+            if (request.getDeviceInfo().getLongitude() != null) {
+                webhookLog.setLongitude(BigDecimal.valueOf(request.getDeviceInfo().getLongitude()));
+            }
+        }
+        webhookLogMapper.insert(webhookLog);
 
         return response;
     }

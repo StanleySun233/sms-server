@@ -1,4 +1,4 @@
-package com.smsserver.dto;
+package com.smsserver.dto.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

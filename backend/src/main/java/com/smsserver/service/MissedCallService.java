@@ -1,8 +1,8 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.smsserver.dto.MissedCallResponse;
-import com.smsserver.dto.MissedCallSummary;
+import com.smsserver.dto.missedcall.MissedCallResponse;
+import com.smsserver.dto.missedcall.MissedCallSummary;
 import com.smsserver.entity.Device;
 import com.smsserver.entity.MissedCall;
 import com.smsserver.mapper.DeviceMapper;
