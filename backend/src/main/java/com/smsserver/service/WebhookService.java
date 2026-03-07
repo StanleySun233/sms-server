@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -170,7 +171,9 @@ public class WebhookService {
                 return OffsetDateTime.parse(timestamp, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                         .toInstant().atZone(ZoneOffset.UTC).toLocalDateTime();
             }
-            return LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            return LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    .atZone(ZoneId.of("Asia/Shanghai"))
+                    .toInstant().atZone(ZoneOffset.UTC).toLocalDateTime();
         } catch (Exception e) {
             log.warn("Failed to parse timestamp: {}", timestamp);
             return null;
