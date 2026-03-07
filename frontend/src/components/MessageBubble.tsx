@@ -42,8 +42,9 @@ export default function MessageBubble({ message, deviceId, onRetry }: MessageBub
         }}
       >
         <p className="text-white break-words">{message.content}</p>
-        <div className={`text-xs mt-1 ${isSent ? 'text-white/70' : 'text-white/50'}`}>
-          {formatDateTime(message.createdAt)}
+        <div className={`text-xs mt-1 flex items-center gap-1.5 ${isSent ? 'text-white/70' : 'text-white/50'}`}>
+          <span>{formatDateTime(message.createdAt)}</span>
+          {!isSent && message.readAt && <span className="text-white/40">已读</span>}
         </div>
       </div>
     </div>

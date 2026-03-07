@@ -56,6 +56,26 @@ export interface UpdateDeviceRequest {
   alias: string;
 }
 
+export interface WebhookLogEntry {
+  id: number;
+  deviceId: number;
+  webhookToken: string | null;
+  receivedAt: string;
+  newMessagesCount: number;
+  missedCallsCount: number;
+  commandsCount: number;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface PagedWebhookLogsResponse {
+  records: WebhookLogEntry[];
+  total: number;
+  current: number;
+  size: number;
+  last: boolean;
+}
+
 // SMS Types
 export interface SmsMessage {
   id: number;

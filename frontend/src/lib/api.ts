@@ -88,6 +88,8 @@ export const deviceApi = {
     apiClient.get<{ exists: boolean; username: string | null }>('/devices/transfer/check-username', { params: { username } }),
   transfer: (deviceId: number, username: string) =>
     apiClient.post(`/devices/${deviceId}/transfer`, { username }),
+  getWebhookLogs: (deviceId: number, page: number = 1, size: number = 20) =>
+    apiClient.get(`/devices/${deviceId}/webhook-logs`, { params: { page, size } }),
 };
 
 // SMS API functions
