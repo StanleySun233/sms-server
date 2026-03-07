@@ -1,6 +1,8 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.smsserver.dto.WebhookMessageEvent;
+import com.smsserver.dto.WebhookMissedCallEvent;
 import com.smsserver.dto.WebhookRequest;
 import com.smsserver.dto.WebhookResponse;
 import com.smsserver.entity.*;
@@ -26,6 +28,7 @@ public class WebhookService {
     private final PendingSmsMapper pendingSmsMapper;
     private final SimChangeLogMapper simChangeLogMapper;
     private final RedisService redisService;
+    private final WebhookEventProducer webhookEventProducer;
 
     @Transactional
     public WebhookResponse processHeartbeat(String webhookToken, WebhookRequest request) {
@@ -51,16 +54,24 @@ public class WebhookService {
         }
         deviceMapper.updateById(device);
 
-        // 3. Save new messages
+        // 3. Publish new messages to Kafka (async)
         if (request.getNewMessages() != null && !request.getNewMessages().isEmpty()) {
-            saveNewMessages(device.getId(), request.getNewMessages());
-            // Invalidate unread count cache
-            redisService.deleteDeviceUnreadCount(device.getId());
+            webhookEventProducer.publishMessages(
+                WebhookMessageEvent.builder()
+                    .deviceId(device.getId())
+                    .messages(request.getNewMessages())
+                    .build()
+            );
         }
 
-        // 4. Save missed calls
+        // 4. Publish missed calls to Kafka (async)
         if (request.getMissedCalls() != null && !request.getMissedCalls().isEmpty()) {
-            saveMissedCalls(device.getId(), request.getMissedCalls());
+            webhookEventProducer.publishMissedCalls(
+                WebhookMissedCallEvent.builder()
+                    .deviceId(device.getId())
+                    .missedCalls(request.getMissedCalls())
+                    .build()
+            );
         }
 
         // 5. Fetch pending SMS tasks from Redis
@@ -99,7 +110,7 @@ public class WebhookService {
         return response;
     }
 
-    private void saveNewMessages(Long deviceId, List<WebhookRequest.NewMessage> messages) {
+    public void saveNewMessages(Long deviceId, List<WebhookRequest.NewMessage> messages) {
         Device device = deviceMapper.selectById(deviceId);
         String receiverPhone = device != null ? device.getCurrentPhoneNumber() : null;
         for (WebhookRequest.NewMessage msg : messages) {
@@ -122,7 +133,7 @@ public class WebhookService {
         }
     }
 
-    private void saveMissedCalls(Long deviceId, List<WebhookRequest.MissedCall> calls) {
+    public void saveMissedCalls(Long deviceId, List<WebhookRequest.MissedCall> calls) {
         for (WebhookRequest.MissedCall call : calls) {
             MissedCall missedCall = new MissedCall();
             missedCall.setDeviceId(deviceId);

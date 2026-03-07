@@ -27,6 +27,9 @@ spring:
           min-idle: 4
           max-wait: -1ms
 
+  kafka:
+    bootstrap-servers: kafka:9092
+
 # MyBatis-Plus configuration
 mybatis-plus:
   configuration:
