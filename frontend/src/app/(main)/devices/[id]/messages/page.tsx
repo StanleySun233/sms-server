@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
 import { smsApi } from '@/lib/api';
 import { LineSummary } from '@/lib/types';
 import { formatDateTime } from '@/lib/dateUtils';
+
+const PAGE_SIZE = 20;
 
 export default function MessagesPage() {
   const t = useTranslations('messages');
@@ -17,17 +19,71 @@ export default function MessagesPage() {
 
   const [lines, setLines] = useState<LineSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Load initial data
   useEffect(() => {
     const load = async () => {
-      const response = await smsApi.getMessageLines(deviceId);
-      setLines(response.data.data || []);
+      const response = await smsApi.getMessageLines(deviceId, 1, PAGE_SIZE);
+      const newLines = response.data.data || [];
+      setLines(newLines);
+      setHasMore(newLines.length === PAGE_SIZE);
     };
     load().catch((error: unknown) => ElMessage.error((error as Error).message || t('loadLinesFailed'))).finally(() => setLoading(false));
-    const interval = setInterval(load, 10000);
+    const interval = setInterval(() => {
+      // Refresh first page data
+      smsApi.getMessageLines(deviceId, 1, PAGE_SIZE).then(response => {
+        const newLines = response.data.data || [];
+        setLines(prev => {
+          // Merge with existing data, keep items beyond first page
+          const existing = prev.slice(PAGE_SIZE);
+          return [...newLines, ...existing];
+        });
+      });
+    }, 10000);
     return () => clearInterval(interval);
   }, [deviceId]);
+
+  // Load more data
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const response = await smsApi.getMessageLines(deviceId, nextPage, PAGE_SIZE);
+      const newLines = response.data.data || [];
+
+      if (newLines.length > 0) {
+        setLines(prev => [...prev, ...newLines]);
+        setPage(nextPage);
+        setHasMore(newLines.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      ElMessage.error((error as Error).message || t('loadLinesFailed'));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [deviceId, page, loadingMore, hasMore]);
+
+  // Scroll event handler
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const scrollTop = target.scrollTop;
+    const scrollHeight = target.scrollHeight;
+    const clientHeight = target.clientHeight;
+
+    // Load more when scrolled near bottom (within 100px)
+    if (scrollHeight - scrollTop - clientHeight < 100 && !loadingMore && hasMore) {
+      loadMore();
+    }
+  }, [loadMore, loadingMore, hasMore]);
 
   const handleSelectLine = (receiverPhone: string) => {
     router.push(`/devices/${deviceId}/messages/${encodeURIComponent(receiverPhone)}`);
@@ -90,69 +146,92 @@ export default function MessagesPage() {
                 }}
               />
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto hide-scrollbar"
+            >
               {filteredLines.length === 0 ? (
                 <div className="p-4 text-white/50 text-center">{t('noLines')}</div>
               ) : (
-                filteredLines.map((line) => (
-                  <div
-                    key={line.receiverPhone}
-                    onClick={() => handleSelectLine(line.receiverPhone)}
-                    className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
-                    style={{
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    }}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-white">
-                        {lineDisplayLabel(line.receiverPhone)}
-                      </span>
-                      {line.unreadCount > 0 && (
-                        <span
-                          className="px-2 py-1 rounded-full text-xs font-bold text-white"
-                          style={{ backgroundColor: '#c2905e' }}
-                        >
-                          {line.unreadCount}
+                <>
+                  {filteredLines.map((line) => (
+                    <div
+                      key={line.receiverPhone}
+                      onClick={() => handleSelectLine(line.receiverPhone)}
+                      className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
+                      style={{
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-medium text-white">
+                          {lineDisplayLabel(line.receiverPhone)}
                         </span>
-                      )}
-                    </div>
-                    {line.lastMessage != null && (
-                      <div className="text-xs text-white/50 mb-0.5 flex items-center gap-1">
-                        {line.lastMessageDirection === 'received' ? (
-                          <>
-                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                              <polyline points="7 10 12 15 17 10" />
-                              <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            收到
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="22" y1="2" x2="11" y2="13" />
-                              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                            </svg>
-                            发出
-                          </>
+                        {line.unreadCount > 0 && (
+                          <span
+                            className="px-2 py-1 rounded-full text-xs font-bold text-white"
+                            style={{ backgroundColor: '#c2905e' }}
+                          >
+                            {line.unreadCount}
+                          </span>
                         )}
                       </div>
-                    )}
-                    <div className="text-sm text-white/70 truncate">
-                      {line.lastMessage || t('noMessages')}
-                    </div>
-                    {line.lastMessageTime && (
-                      <div className="text-xs text-white/50 mt-1">
-                        {formatDateTime(line.lastMessageTime)}
+                      {line.lastMessage != null && (
+                        <div className="text-xs text-white/50 mb-0.5 flex items-center gap-1">
+                          {line.lastMessageDirection === 'received' ? (
+                            <>
+                              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                              </svg>
+                              收到
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                              </svg>
+                              发出
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-sm text-white/70 truncate">
+                        {line.lastMessage || t('noMessages')}
                       </div>
-                    )}
-                  </div>
-                ))
+                      {line.lastMessageTime && (
+                        <div className="text-xs text-white/50 mt-1">
+                          {formatDateTime(line.lastMessageTime)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {loadingMore && (
+                    <div className="p-4 text-white/50 text-center">{tCommon('loading')}</div>
+                  )}
+                  {!hasMore && filteredLines.length > 0 && (
+                    <div className="p-4 text-white/50 text-center text-sm">
+                      {t('noMoreLines') || '没有更多了'}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
         </div>
       </div>
+      <style jsx>{`
+        .hide-scrollbar {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+      `}</style>
     </div>
   );
 }

@@ -328,8 +328,10 @@ export default function ConversationPage() {
 
             <div
               ref={messagesContainerRef}
-              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2"
-              style={{ scrollBehavior: 'smooth' }}
+              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 hide-scrollbar"
+              style={{
+                scrollBehavior: 'smooth',
+              }}
             >
               {!selectedSender || selectedSender === '__new__' ? (
                 <div className="text-white/50 text-center mt-8">

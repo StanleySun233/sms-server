@@ -57,6 +57,10 @@ public class SmsService {
     }
 
     public List<LineSummaryResponse> getLineSummaries(Long deviceId, Long userId) {
+        return getLineSummaries(deviceId, userId, null, null);
+    }
+
+    public List<LineSummaryResponse> getLineSummaries(Long deviceId, Long userId, Integer page, Integer size) {
         List<String> lineNumbers = getDeviceLineNumbers(deviceId, userId);
         List<LineSummaryResponse> result = new ArrayList<>();
         for (String receiverPhone : lineNumbers) {
@@ -133,6 +137,17 @@ public class SmsService {
             if (tb == null) return -1;
             return tb.compareTo(ta);
         });
+
+        // Apply pagination if requested
+        if (page != null && size != null && page > 0 && size > 0) {
+            int start = (page - 1) * size;
+            int end = Math.min(start + size, result.size());
+            if (start >= result.size()) {
+                return new ArrayList<>();
+            }
+            return result.subList(start, end);
+        }
+
         return result;
     }
 
@@ -236,11 +251,34 @@ public class SmsService {
     }
 
     public List<PendingSms> getSendLogs(Long deviceId, Long userId, int limit) {
+        return getSendLogs(deviceId, userId, null, null, null);
+    }
+
+    public List<PendingSms> getSendLogs(Long deviceId, Long userId, Integer page, Integer size, String keyword) {
         deviceService.getDevice(deviceId, userId);
         LambdaQueryWrapper<PendingSms> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PendingSms::getDeviceId, deviceId)
-                .orderByDesc(PendingSms::getCreatedAt)
-                .last("LIMIT " + Math.min(limit, 100));
+        wrapper.eq(PendingSms::getDeviceId, deviceId);
+
+        // Add search filter if keyword provided
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String kw = keyword.trim();
+            wrapper.and(w -> w.like(PendingSms::getPhoneNumber, kw)
+                             .or()
+                             .like(PendingSms::getContent, kw));
+        }
+
+        wrapper.orderByDesc(PendingSms::getCreatedAt);
+
+        // Apply pagination if provided
+        if (page != null && size != null && page > 0 && size > 0) {
+            int offset = (page - 1) * size;
+            int limit = Math.min(size, 100);
+            wrapper.last("LIMIT " + limit + " OFFSET " + offset);
+        } else {
+            // Legacy mode: use limit parameter (default 20, max 100)
+            wrapper.last("LIMIT 20");
+        }
+
         return pendingSmsMapper.selectList(wrapper);
     }
 

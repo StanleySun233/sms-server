@@ -36,10 +36,13 @@ public class SmsController {
     }
 
     @GetMapping("/devices/{id}/messages/lines")
-    public ResponseEntity<ApiResponse<List<LineSummaryResponse>>> getMessageLines(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<List<LineSummaryResponse>>> getMessageLines(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
         try {
             Long userId = getCurrentUserId();
-            List<LineSummaryResponse> lines = smsService.getLineSummaries(id, userId);
+            List<LineSummaryResponse> lines = smsService.getLineSummaries(id, userId, page, size);
             return ResponseEntity.ok(ApiResponse.success(lines));
         } catch (Exception e) {
             log.error("Failed to get message lines", e);
@@ -81,10 +84,12 @@ public class SmsController {
     @GetMapping("/devices/{id}/send-logs")
     public ResponseEntity<ApiResponse<List<PendingSms>>> getSendLogs(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String keyword) {
         try {
             Long userId = getCurrentUserId();
-            List<PendingSms> logs = smsService.getSendLogs(id, userId, limit);
+            List<PendingSms> logs = smsService.getSendLogs(id, userId, page, size, keyword);
             return ResponseEntity.ok(ApiResponse.success(logs));
         } catch (Exception e) {
             log.error("Failed to get send logs", e);

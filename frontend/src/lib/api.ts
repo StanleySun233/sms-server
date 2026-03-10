@@ -94,8 +94,10 @@ export const deviceApi = {
 
 // SMS API functions
 export const smsApi = {
-  getMessageLines: (deviceId: number) =>
-    apiClient.get(`/devices/${deviceId}/messages/lines`),
+  getMessageLines: (deviceId: number, page?: number, size?: number) =>
+    apiClient.get(`/devices/${deviceId}/messages/lines`, {
+      params: page && size ? { page, size } : {}
+    }),
 
   getConversations: (deviceId: number, receiverPhone?: string) =>
     apiClient.get(`/devices/${deviceId}/conversations`, {
@@ -113,8 +115,13 @@ export const smsApi = {
   retryMessage: (deviceId: number, messageId: number) =>
     apiClient.post(`/devices/${deviceId}/messages/retry`, { messageId }),
 
-  getSendLogs: (deviceId: number, limit: number = 20) =>
-    apiClient.get(`/devices/${deviceId}/send-logs`, { params: { limit } }),
+  getSendLogs: (deviceId: number, page?: number, size?: number, keyword?: string) =>
+    apiClient.get(`/devices/${deviceId}/send-logs`, {
+      params: {
+        ...(page && size ? { page, size } : {}),
+        ...(keyword ? { keyword } : {})
+      }
+    }),
 
   markAsRead: (messageIds: number[]) =>
     apiClient.put('/messages/read', { messageIds }),
