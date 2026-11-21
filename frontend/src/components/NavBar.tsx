@@ -33,24 +33,25 @@ export default function NavBar() {
 
   return (
     <nav
-      className="flex items-center gap-1 px-4 py-3 border-b border-white/10"
+      className="flex flex-wrap items-center gap-2 px-3 py-2 sm:px-4 sm:py-3 border-b border-white/10"
       style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
     >
       <Link
         href="/dashboard"
-        className="text-lg font-semibold mr-6"
+        className="text-lg font-semibold mr-auto md:mr-4"
         style={{ color: '#c2905e' }}
       >
         {t('appName')}
       </Link>
-      <div className="flex items-center gap-1 flex-1">
+      <div className="order-last md:order-none flex items-center gap-1 w-full md:w-auto md:flex-1 overflow-x-auto">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="px-4 py-2 rounded-lg transition-all duration-200"
+              aria-current={active ? 'page' : undefined}
+              className="whitespace-nowrap px-3 py-2 rounded-lg transition-all duration-200"
               style={{
                 backgroundColor: active ? 'rgba(194, 144, 94, 0.25)' : 'transparent',
                 color: active ? '#c2905e' : 'rgba(255,255,255,0.8)',

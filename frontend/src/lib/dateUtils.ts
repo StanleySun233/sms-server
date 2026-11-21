@@ -3,7 +3,8 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-export function formatDateTime(isoOrDate: string | Date): string {
+export function formatDateTime(isoOrDate: string | Date | null | undefined): string {
+  if (!isoOrDate) return '—';
   const d = typeof isoOrDate === 'string'
     ? (() => {
         const hasOffset = /Z|[+-]\d{2}:?\d{2}$/.test(isoOrDate);
@@ -11,6 +12,7 @@ export function formatDateTime(isoOrDate: string | Date): string {
         return new Date(normalized);
       })()
     : isoOrDate;
+  if (Number.isNaN(d.getTime())) return '—';
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 

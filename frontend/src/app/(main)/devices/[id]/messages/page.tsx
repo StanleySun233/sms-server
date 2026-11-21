@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ElMessage } from 'element-plus';
+import Link from 'next/link';
 import { smsApi } from '@/lib/api';
 import { LineSummary } from '@/lib/types';
 import { formatDateTime } from '@/lib/dateUtils';
@@ -17,21 +17,38 @@ export default function MessagesPage() {
 
   const [lines, setLines] = useState<LineSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reload, setReload] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    let active = true;
+    let pending = false;
     const load = async () => {
-      const response = await smsApi.getMessageLines(deviceId);
-      setLines(response.data.data || []);
+      if (pending || document.hidden) return;
+      pending = true;
+      try {
+        const response = await smsApi.getMessageLines(deviceId);
+        if (active) {
+          setLines(response.data.data ?? []);
+          setLoadFailed(false);
+        }
+      } catch {
+        if (active) setLoadFailed(true);
+      } finally {
+        if (active) setLoading(false);
+        pending = false;
+      }
     };
-    load().catch((error: unknown) => ElMessage.error((error as Error).message || t('loadLinesFailed'))).finally(() => setLoading(false));
+    void load();
     const interval = setInterval(load, 10000);
-    return () => clearInterval(interval);
-  }, [deviceId]);
-
-  const handleSelectLine = (receiverPhone: string) => {
-    router.push(`/devices/${deviceId}/messages/${encodeURIComponent(receiverPhone)}`);
-  };
+    document.addEventListener('visibilitychange', load);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', load);
+    };
+  }, [deviceId, reload]);
 
   const noReceiverLabel = t('noReceiver');
   const lineDisplayLabel = (receiverPhone: string) =>
@@ -67,19 +84,23 @@ export default function MessagesPage() {
           </button>
         </div>
 
+        {loadFailed && <p role="alert" className="mb-4 text-amber-200">
+          {t('loadLinesFailed')} <button type="button" className="underline" onClick={() => setReload((value) => value + 1)}>{t('retryLoad')}</button>
+        </p>}
         <div
           className="rounded-2xl shadow-xl overflow-hidden"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            height: 'calc(100vh - 250px)',
+            height: 'max(16rem, calc(100dvh - 250px))',
           }}
         >
           <div className="flex flex-col h-full">
             <div className="p-4">
               <input
                 type="text"
+                aria-label={t('searchConversations')}
                 placeholder={t('searchConversations')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -92,13 +113,13 @@ export default function MessagesPage() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {filteredLines.length === 0 ? (
-                <div className="p-4 text-white/50 text-center">{t('noLines')}</div>
+                !loadFailed && <div className="p-4 text-white/50 text-center">{searchQuery.trim() ? t('noMatchingConversations') : t('noLines')}</div>
               ) : (
                 filteredLines.map((line) => (
-                  <div
+                  <Link
                     key={line.receiverPhone}
-                    onClick={() => handleSelectLine(line.receiverPhone)}
-                    className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
+                    href={`/devices/${deviceId}/messages/${encodeURIComponent(line.receiverPhone)}`}
+                    className="block p-4 transition-all duration-200 hover:bg-white/5"
                     style={{
                       borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                     }}
@@ -125,7 +146,7 @@ export default function MessagesPage() {
                               <polyline points="7 10 12 15 17 10" />
                               <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            收到
+                            {t('incomingLabel')}
                           </>
                         ) : (
                           <>
@@ -133,7 +154,7 @@ export default function MessagesPage() {
                               <line x1="22" y1="2" x2="11" y2="13" />
                               <polygon points="22 2 15 22 11 13 2 9 22 2" />
                             </svg>
-                            发出
+                            {t('outgoingLabel')}
                           </>
                         )}
                       </div>
@@ -146,7 +167,7 @@ export default function MessagesPage() {
                         {formatDateTime(line.lastMessageTime)}
                       </div>
                     )}
-                  </div>
+                  </Link>
                 ))
               )}
             </div>

@@ -1,5 +1,7 @@
 {
   "common": {
+    "sessionUnavailable": "暂时无法验证登录状态。",
+    "tryAgain": "重试",
     "loading": "加载中...",
     "cancel": "取消",
     "copy": "复制",
@@ -62,12 +64,16 @@
     "offlineDevices": "离线设备",
     "unreadMessages": "未读短信",
     "missedCalls": "未接来电",
-    "sentMessages": "已发消息",
+    "sentMessages": "外发任务",
     "lastUpdated": "最后更新：",
     "autoRefresh": "每 30 秒自动刷新",
     "myDevices": "我的设备（{count}）"
   },
   "devices": {
+    "loadSendLogsFailed": "暂时无法加载发送记录。",
+    "firstHeartbeatWaiting": "等待设备首次上报。写入 Webhook 地址并启动设备后，此处会自动更新。",
+    "firstHeartbeatCheckFailed": "暂时无法检查设备状态，稍后会自动重试。",
+    "firstHeartbeatReceived": "已收到设备上报 · {time}",
     "listTitle": "设备列表",
     "addDevice": "添加设备",
     "noDevices": "暂无设备",
@@ -119,7 +125,7 @@
     "messagePlaceholder": "请输入要发送的内容",
     "sendButton": "发送",
     "sending": "发送中...",
-    "sendQueuedSuccess": "已加入发送队列，设备下次心跳时会发送",
+    "sendQueuedSuccess": "已加入发送队列，等待设备处理。",
     "sendLogs": "发送日志",
     "statusPending": "待发送",
     "statusSent": "下发结果未确认",
@@ -165,6 +171,17 @@
     "allCaughtUp": "无未读消息"
   },
   "messages": {
+    "readLabel": "已读",
+    "historicalLine": "这是历史号码的会话。",
+    "openCurrentLine": "打开当前号码",
+    "conversationList": "会话列表",
+    "conversationLoadFailed": "会话列表加载失败",
+    "threadLoadFailed": "短信加载失败",
+    "retryLoad": "重试",
+    "olderMessages": "加载更早的短信",
+    "noMatchingConversations": "没有匹配的会话",
+    "incomingLabel": "收到",
+    "outgoingLabel": "发出",
     "title": "短信",
     "backToDevice": "返回设备",
     "new": "新建",

@@ -1,5 +1,7 @@
 {
   "common": {
+    "sessionUnavailable": "Could not verify your session.",
+    "tryAgain": "Try again",
     "loading": "Loading...",
     "cancel": "Cancel",
     "copy": "Copy",
@@ -62,12 +64,16 @@
     "offlineDevices": "Offline Devices",
     "unreadMessages": "Unread Messages",
     "missedCalls": "Missed Calls",
-    "sentMessages": "Sent Messages",
+    "sentMessages": "Outgoing tasks",
     "lastUpdated": "Last updated: ",
     "autoRefresh": "Auto-refresh every 30s",
     "myDevices": "Your Devices ({count})"
   },
   "devices": {
+    "loadSendLogsFailed": "Could not load send history.",
+    "firstHeartbeatWaiting": "Waiting for the first report. Set the webhook URL and start the device. This page updates automatically.",
+    "firstHeartbeatCheckFailed": "Could not check the device. Retrying shortly.",
+    "firstHeartbeatReceived": "Device report received · {time}",
     "listTitle": "Devices",
     "addDevice": "Add Device",
     "noDevices": "No devices",
@@ -119,7 +125,7 @@
     "messagePlaceholder": "Enter message content",
     "sendButton": "Send",
     "sending": "Sending...",
-    "sendQueuedSuccess": "Added to send queue. Message will be sent on next device heartbeat.",
+    "sendQueuedSuccess": "Queued. Waiting for the device to process it.",
     "sendLogs": "Send Logs",
     "statusPending": "Pending",
     "statusSent": "Dispatch unconfirmed",
@@ -165,6 +171,17 @@
     "allCaughtUp": "No unread messages"
   },
   "messages": {
+    "readLabel": "Read",
+    "historicalLine": "This conversation belongs to a previous number.",
+    "openCurrentLine": "Open current number",
+    "conversationList": "Conversations",
+    "conversationLoadFailed": "Could not load conversations",
+    "threadLoadFailed": "Could not load messages",
+    "retryLoad": "Retry",
+    "olderMessages": "Load older messages",
+    "noMatchingConversations": "No matching conversations",
+    "incomingLabel": "Received",
+    "outgoingLabel": "Outgoing",
     "title": "SMS",
     "backToDevice": "Back to device",
     "new": "New",

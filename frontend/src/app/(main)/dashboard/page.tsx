@@ -4,48 +4,53 @@ import StatCard from '@/components/StatCard';
 import DeviceGrid from '@/components/DeviceGrid';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { authApi, dashboardApi } from '@/lib/api';
+import { dashboardApi } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { DashboardStatsResponse } from '@/lib/types';
-import { getDeviceStatusFromHeartbeat, formatDateTime } from '@/lib/dateUtils';
-import { useRouter } from 'next/navigation';
+import { formatDateTime } from '@/lib/dateUtils';
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-
-  const fetchStats = async () => {
-    const response = await dashboardApi.getStats();
-    setStats(response.data);
-    setLastUpdated(new Date());
-  };
-
-  const fetchUser = async () => {
-    const response = await authApi.getCurrentUser();
-    setUser(response.data);
-  };
+  const [lastUpdated, setLastUpdated] = useState<Date>();
+  const [refreshError, setRefreshError] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([fetchUser(), fetchStats()]);
-      setLoading(false);
+    let active = true;
+    let pending = false;
+    const fetchStats = async () => {
+      if (document.hidden || pending) return;
+      pending = true;
+      try {
+        const { data } = await dashboardApi.getStats();
+        if (active) {
+          setStats(data);
+          setLastUpdated(new Date());
+          setRefreshError(false);
+        }
+      } catch {
+        if (active) setRefreshError(true);
+      } finally {
+        pending = false;
+        if (active) setLoading(false);
+      }
     };
-    loadData();
-    const interval = setInterval(() => fetchStats(), 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleRefresh = () => {
-    fetchStats();
-  };
+    void fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    document.addEventListener('visibilitychange', fetchStats);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', fetchStats);
+    };
+  }, [refreshCount]);
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8">
+      <div className="flex flex-wrap gap-3 justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#c2905e' }}>
             {t('title')}
@@ -55,7 +60,7 @@ export default function DashboardPage() {
           )}
         </div>
         <button
-          onClick={handleRefresh}
+          onClick={() => setRefreshCount((value) => value + 1)}
           className="px-4 py-2 rounded-lg transition-all duration-200 text-white"
           style={{
             backgroundColor: 'rgba(194, 144, 94, 0.3)',
@@ -65,6 +70,7 @@ export default function DashboardPage() {
           🔄 {t('refresh')}
         </button>
       </div>
+      {refreshError && <p role="alert" className="mb-4 text-amber-200">{t('loadFailed')}</p>}
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -72,22 +78,22 @@ export default function DashboardPage() {
         </div>
       ) : stats ? (
         <>
-          <div className="grid grid-cols-6 gap-6 mb-8">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 mb-8">
             <StatCard
               title={t('onlineDevices')}
-              value={stats.devices.filter((d) => getDeviceStatusFromHeartbeat(d.lastHeartbeatAt) === 'online').length}
+              value={stats.onlineDevices}
               icon="✓"
               color="#10b981"
             />
             <StatCard
               title={t('warningDevices')}
-              value={stats.devices.filter((d) => getDeviceStatusFromHeartbeat(d.lastHeartbeatAt) === 'warning').length}
+              value={stats.warningDevices}
               icon="⚠"
               color="#f59e0b"
             />
             <StatCard
               title={t('offlineDevices')}
-              value={stats.devices.filter((d) => getDeviceStatusFromHeartbeat(d.lastHeartbeatAt) === 'offline').length}
+              value={stats.offlineDevices}
               icon="✗"
               color="#ef4444"
             />
@@ -123,9 +129,7 @@ export default function DashboardPage() {
             <DeviceGrid devices={stats.devices} />
           </div>
         </>
-      ) : (
-        <div className="text-white text-center">{t('loadFailed')}</div>
-      )}
+      ) : null}
     </div>
   );
 }

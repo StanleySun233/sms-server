@@ -1,12 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { User } from '@/lib/types';
-import { authApi, TOKEN_KEY } from '@/lib/api';
+import { ApiError, authApi, TOKEN_KEY } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  sessionError: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -17,41 +18,65 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setUser(null);
+      setSessionError(false);
+      setLoading(false);
+      return;
+    }
     try {
       const response = await authApi.getCurrentUser();
-      setUser(response.data);
+      if (localStorage.getItem(TOKEN_KEY) === token) {
+        setUser(response.data);
+        setSessionError(false);
+      }
     } catch (error) {
-      setUser(null);
+      if (localStorage.getItem(TOKEN_KEY) !== token) return;
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        localStorage.removeItem(TOKEN_KEY);
+        setUser(null);
+        setSessionError(false);
+      } else {
+        setSessionError(true);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    void fetchUser();
+  }, [fetchUser]);
 
   const login = async (username: string, password: string) => {
     const response = await authApi.login({ username, password });
     const token = (response.data as { token?: string })?.token;
-    if (token && typeof window !== 'undefined') {
-      localStorage.setItem(TOKEN_KEY, token);
+    if (!token) throw new ApiError('Login response did not contain a session');
+    localStorage.setItem(TOKEN_KEY, token);
+    try {
+      const profile = await authApi.getCurrentUser();
+      setUser(profile.data);
+      setSessionError(false);
+    } catch (error) {
+      if (localStorage.getItem(TOKEN_KEY) === token) localStorage.removeItem(TOKEN_KEY);
+      throw error;
     }
-    await fetchUser();
   };
 
   const logout = async () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(TOKEN_KEY);
-    }
-    await authApi.logout();
+    const request = authApi.logout();
+    localStorage.removeItem(TOKEN_KEY);
     setUser(null);
+    setSessionError(false);
+    void request.catch(() => {});
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser: fetchUser }}>
+    <AuthContext.Provider value={{ user, loading, sessionError, login, logout, refreshUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

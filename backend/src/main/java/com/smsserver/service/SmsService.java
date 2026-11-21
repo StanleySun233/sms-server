@@ -1,6 +1,7 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smsserver.dto.sms.ConversationResponse;
 import com.smsserver.dto.sms.LineSummaryResponse;
@@ -22,7 +23,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -143,41 +143,8 @@ public class SmsService {
 
     public List<ConversationResponse> getConversations(Long deviceId, String receiverPhone, Long userId) {
         deviceService.getDevice(deviceId, userId);
-
-        LambdaQueryWrapper<SmsMessage> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SmsMessage::getDeviceId, deviceId).orderByDesc(SmsMessage::getCreatedAt);
-        if (receiverPhone != null && !receiverPhone.isEmpty()) {
-            if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
-                wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
-            } else {
-                wrapper.eq(SmsMessage::getReceiverPhone, receiverPhone);
-            }
-        }
-        List<SmsMessage> allMessages = smsMessageMapper.selectList(wrapper);
-
-        Map<String, List<SmsMessage>> groupedMessages = allMessages.stream()
-                .collect(Collectors.groupingBy(SmsMessage::getPhoneNumber));
-
-        List<ConversationResponse> conversations = new ArrayList<>();
-        for (Map.Entry<String, List<SmsMessage>> entry : groupedMessages.entrySet()) {
-            String phone = entry.getKey();
-            List<SmsMessage> messages = entry.getValue();
-            SmsMessage lastMessage = messages.get(0);
-            long unreadCount = messages.stream()
-                    .filter(m -> "received".equals(m.getDirection()) && m.getReadAt() == null)
-                    .count();
-            ConversationResponse conversation = new ConversationResponse();
-            conversation.setPhone(phone);
-            conversation.setLastMessage(lastMessage.getContent());
-            conversation.setLastMessageDirection(lastMessage.getDirection());
-            conversation.setUnreadCount((int) unreadCount);
-            conversation.setLastMessageTime(lastMessage.getCreatedAt());
-            conversations.add(conversation);
-        }
-        conversations.sort((a, b) -> b.getLastMessageTime().compareTo(a.getLastMessageTime()));
-        return conversations;
+        return smsMessageMapper.findConversationSummaries(deviceId, receiverPhone);
     }
-
     public Page<SmsMessage> getConversationMessages(Long deviceId, String phone, Long userId, int pageNum, int pageSize) {
         return getConversationMessages(deviceId, null, phone, userId, pageNum, pageSize);
     }
@@ -188,7 +155,7 @@ public class SmsService {
         LambdaQueryWrapper<SmsMessage> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SmsMessage::getDeviceId, deviceId)
                 .eq(SmsMessage::getPhoneNumber, phone)
-                .orderByDesc(SmsMessage::getCreatedAt);
+                .orderByDesc(SmsMessage::getCreatedAt, SmsMessage::getId);
         if (receiverPhone != null && !receiverPhone.isEmpty()) {
             if (UNKNOWN_RECEIVER.equals(receiverPhone)) {
                 wrapper.and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""));
@@ -197,14 +164,19 @@ public class SmsService {
             }
         }
         page = smsMessageMapper.selectPage(page, wrapper);
-        for (SmsMessage msg : page.getRecords()) {
-            if (msg.getPendingSmsId() != null && "pending".equals(msg.getStatus())) {
-                PendingSms pending = pendingSmsMapper.selectById(msg.getPendingSmsId());
-                if (pending != null && !"pending".equals(pending.getStatus())) {
-                    msg.setStatus(pending.getStatus());
-                    smsMessageMapper.updateById(msg);
+        Set<Long> pendingIds = page.getRecords().stream()
+                .filter(message -> "pending".equals(message.getStatus()) && message.getPendingSmsId() != null)
+                .map(SmsMessage::getPendingSmsId)
+                .collect(Collectors.toSet());
+        if (!pendingIds.isEmpty()) {
+            var statusById = pendingSmsMapper.selectBatchIds(pendingIds).stream()
+                    .filter(task -> task.getStatus() != null)
+                    .collect(Collectors.toMap(PendingSms::getId, PendingSms::getStatus));
+            page.getRecords().forEach(message -> {
+                if ("pending".equals(message.getStatus()) && statusById.containsKey(message.getPendingSmsId())) {
+                    message.setStatus(statusById.get(message.getPendingSmsId()));
                 }
-            }
+            });
         }
         return page;
     }
@@ -312,26 +284,29 @@ public class SmsService {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-
-        for (Long messageId : messageIds) {
-            SmsMessage message = smsMessageMapper.selectById(messageId);
-            if (message != null) {
-                // Verify device ownership
-                deviceService.getDevice(message.getDeviceId(), userId);
-
-                // Update read_at if not already read
-                if (message.getReadAt() == null) {
-                    message.setReadAt(now);
-                    smsMessageMapper.updateById(message);
-
-                    // Invalidate unread count cache
-                    redisService.deleteDeviceUnreadCount(message.getDeviceId());
-                }
-            }
+        List<Long> devices = smsMessageMapper.selectList(new LambdaQueryWrapper<SmsMessage>()
+                        .select(SmsMessage::getDeviceId)
+                        .in(SmsMessage::getId, messageIds)).stream()
+                .map(SmsMessage::getDeviceId).distinct().sorted().toList();
+        if (devices.isEmpty()) return;
+        List<Device> ownedDevices = deviceMapper.selectList(new LambdaQueryWrapper<Device>()
+                .select(Device::getId)
+                .in(Device::getId, devices)
+                .eq(Device::getUserId, userId)
+                .orderByAsc(Device::getId)
+                .last("FOR UPDATE"));
+        if (ownedDevices.size() != devices.size()) {
+            throw new IllegalArgumentException("Access denied");
         }
 
-        log.info("Marked {} messages as read", messageIds.size());
+        int updated = smsMessageMapper.update(null, new LambdaUpdateWrapper<SmsMessage>()
+                .in(SmsMessage::getId, messageIds)
+                .in(SmsMessage::getDeviceId, devices)
+                .eq(SmsMessage::getDirection, "received")
+                .isNull(SmsMessage::getReadAt)
+                .set(SmsMessage::getReadAt, LocalDateTime.now(ZoneOffset.UTC)));
+        if (updated > 0) redisService.invalidateSmsUnreadCountsAfterCommit(devices);
+        log.debug("Marked {} messages as read", updated);
     }
 
     /**

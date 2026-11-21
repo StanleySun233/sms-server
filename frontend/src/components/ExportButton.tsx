@@ -5,6 +5,7 @@ import { smsApi } from '@/lib/api';
 import { ElMessage } from 'element-plus';
 import { SmsMessage } from '@/lib/types';
 import { formatDateTime } from '@/lib/dateUtils';
+import { useState } from 'react';
 
 interface ExportButtonProps {
   deviceId: number;
@@ -13,6 +14,7 @@ interface ExportButtonProps {
 }
 
 function escapeCsvCell(s: string): string {
+  if (/^[\t\r\n]|^\s*[=+\-@＝＋－＠]/.test(s)) s = "'" + s;
   if (/[",\n\r]/.test(s)) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
@@ -40,6 +42,7 @@ function buildCsv(messages: SmsMessage[]): string {
 
 export default function ExportButton({ deviceId, receiverPhone, phone }: ExportButtonProps) {
   const t = useTranslations('messages');
+  const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
     const response = await smsApi.searchMessages(deviceId, {
@@ -62,8 +65,13 @@ export default function ExportButton({ deviceId, receiverPhone, phone }: ExportB
 
   return (
     <button
-      onClick={() => handleExport().catch((error: any) => ElMessage.error(error.message || t('exportFailed')))}
-      className="px-4 py-2 rounded-lg font-medium transition-all duration-200"
+      type="button"
+      disabled={exporting}
+      onClick={() => {
+        setExporting(true);
+        void handleExport().catch(() => ElMessage.error(t('exportFailed'))).finally(() => setExporting(false));
+      }}
+      className="shrink-0 px-2 sm:px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-60"
       style={{
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',

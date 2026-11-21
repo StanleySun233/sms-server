@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { deviceApi } from '@/lib/api';
 import CopyButton from '@/components/CopyButton';
+import type { Device } from '@/lib/types';
+import { formatDateTime } from '@/lib/dateUtils';
 
 export default function NewDevicePage() {
   const t = useTranslations('devices');
@@ -12,22 +14,52 @@ export default function NewDevicePage() {
   const router = useRouter();
   const [alias, setAlias] = useState('');
   const [loading, setLoading] = useState(false);
-  const [createdDevice, setCreatedDevice] = useState<any>(null);
+  const [createdDevice, setCreatedDevice] = useState<Device | null>(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [heartbeat, setHeartbeat] = useState<string>();
+  const [heartbeatError, setHeartbeatError] = useState(false);
+  const createdId = createdDevice?.id;
+
+  useEffect(() => {
+    if (createdId == null || heartbeat) return;
+    let active = true;
+    let checking = false;
+    const check = async () => {
+      if (checking || document.hidden) return;
+      checking = true;
+      try {
+        const { data } = await deviceApi.get(createdId);
+        if (active) {
+          setHeartbeat(data.lastHeartbeatAt);
+          setHeartbeatError(false);
+        }
+      } catch {
+        if (active) setHeartbeatError(true);
+      } finally {
+        checking = false;
+      }
+    };
+    void check();
+    const timer = window.setInterval(check, 6000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [createdId, heartbeat]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
+    if (loading) return;
     if (!alias.trim()) {
       setError(t('nameRequired'));
       return;
     }
     setLoading(true);
-    deviceApi.create({ alias }).then((response) => {
+    deviceApi.create({ alias: alias.trim() }).then((response) => {
       setCreatedDevice(response.data);
-      setSuccess(t('createSuccess'));
     }).catch((err: any) => setError(err.message || t('createFailed'))).finally(() => setLoading(false));
   };
 
@@ -49,6 +81,10 @@ export default function NewDevicePage() {
           }}
         >
           <h1 className="text-3xl font-bold text-white mb-6">{t('createSuccess')}</h1>
+          <div role="status" className="mb-6 rounded-lg border border-white/20 p-3 text-white">
+            {heartbeat ? t('firstHeartbeatReceived', { time: formatDateTime(heartbeat) }) :
+              heartbeatError ? t('firstHeartbeatCheckFailed') : t('firstHeartbeatWaiting')}
+          </div>
 
           <div className="space-y-6">
             <div>
@@ -125,15 +161,10 @@ export default function NewDevicePage() {
             </div>
           )}
 
-          {success && (
-            <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4">
-              <p className="text-green-200">{success}</p>
-            </div>
-          )}
-
           <div>
-            <label className="block text-white/90 mb-2">{t('deviceName')}</label>
+            <label htmlFor="device-alias" className="block text-white/90 mb-2">{t('deviceName')}</label>
             <input
+              id="device-alias"
               type="text"
               value={alias}
               onChange={(e) => setAlias(e.target.value)}

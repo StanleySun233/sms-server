@@ -19,6 +19,8 @@ export default function DeviceDetailPage() {
 
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferUsername, setTransferUsername] = useState('');
   const [transferConfirmTarget, setTransferConfirmTarget] = useState<string | null>(null);
@@ -26,26 +28,45 @@ export default function DeviceDetailPage() {
   const [transferSubmitting, setTransferSubmitting] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    let pending = false;
     const fetchDevice = async () => {
-      const response = await deviceApi.get(deviceId);
-      setDevice(response.data);
+      if (pending || document.hidden) return;
+      pending = true;
+      try {
+        const response = await deviceApi.get(deviceId);
+        if (active) {
+          setDevice(response.data);
+          setLoadError(false);
+        }
+      } catch {
+        if (active) setLoadError(true);
+      } finally {
+        pending = false;
+        if (active) setLoading(false);
+      }
     };
-    fetchDevice().catch((error: any) => {
-      ElMessage.error(error.message || t('loadFailed'));
-      router.push('/devices');
-    }).finally(() => setLoading(false));
-
-    const interval = setInterval(() => deviceApi.get(deviceId).then((r) => setDevice(r.data)), 30000);
-    return () => clearInterval(interval);
-  }, [deviceId, router]);
+    void fetchDevice();
+    const interval = setInterval(fetchDevice, 30000);
+    document.addEventListener('visibilitychange', fetchDevice);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', fetchDevice);
+    };
+  }, [deviceId, reload]);
 
   const handleDelete = async () => {
     if (!confirm(t('confirmDeleteIrreversible'))) {
       return;
     }
-    await deviceApi.delete(deviceId);
-    ElMessage.success(t('deleteSuccess'));
-    router.push('/devices');
+    try {
+      await deviceApi.delete(deviceId);
+      ElMessage.success(t('deleteSuccess'));
+      router.push('/devices');
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : t('loadFailed'));
+    }
   };
 
   const openTransferDialog = () => {
@@ -92,7 +113,11 @@ export default function DeviceDetailPage() {
     );
   }
 
-  if (!device) return null;
+  const refreshError = loadError && <p role="alert" className="mb-4 text-amber-200">
+    {t('loadFailed')} <button type="button" className="underline" onClick={() => setReload((value) => value + 1)}>{tCommon('tryAgain')}</button>
+  </p>;
+
+  if (!device || device.id !== deviceId) return <div className="p-6">{refreshError}</div>;
 
   const webhookUrl =
     (typeof window !== 'undefined' ? window.location.origin : '') +
@@ -102,6 +127,7 @@ export default function DeviceDetailPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
+        {refreshError}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-white">{device.alias}</h1>
           <button

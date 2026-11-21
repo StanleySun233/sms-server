@@ -1,26 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { authApi } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const { user, loading, sessionError, refreshUser } = useAuth();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      await authApi.getCurrentUser().then(() => setLoading(false)).catch(() => router.push('/login'));
-    };
-    checkAuth();
-  }, [router]);
+    if (!loading && !user && !sessionError) router.replace('/login');
+  }, [router, loading, user, sessionError]);
 
-  if (loading) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(45, 45, 45)' }}>
-        <div className="text-white text-xl">{tCommon('loading')}</div>
+        {sessionError ? <div role="alert" className="text-center text-white">
+          <p>{tCommon('sessionUnavailable')}</p>
+          <button type="button" className="mt-3 rounded-lg border px-4 py-2" onClick={refreshUser}>{tCommon('tryAgain')}</button>
+        </div> : <div role="status" className="text-white text-xl">{tCommon('loading')}</div>}
       </div>
     );
   }

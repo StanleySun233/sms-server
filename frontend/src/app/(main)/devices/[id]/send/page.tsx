@@ -20,45 +20,72 @@ type SendLogItem = {
 };
 
 export default function DeviceSendPage() {
+  const params = useParams<{ id: string }>();
+  return <DeviceSendScreen key={params.id} deviceId={Number(params.id)} />;
+}
+
+function DeviceSendScreen({ deviceId }: { deviceId: number }) {
   const t = useTranslations('devices');
   const tMessages = useTranslations('messages');
+  const tCommon = useTranslations('common');
   const router = useRouter();
-  const params = useParams();
-  const deviceId = parseInt(params.id as string);
 
   const [sendPhone, setSendPhone] = useState('');
   const [sendContent, setSendContent] = useState('');
   const [sending, setSending] = useState(false);
   const [sendLogs, setSendLogs] = useState<SendLogItem[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [logsError, setLogsError] = useState(false);
   const [sendReady, setSendReady] = useState<boolean>();
+  const [readinessError, setReadinessError] = useState(false);
   const draft = useRef<SmsDraft | null>(null);
+  const validPhone = /^\+?[0-9]{5,19}$/.test(sendPhone.trim());
 
   const fetchSendLogs = useCallback(() => {
     smsApi.getSendLogs(deviceId, 20)
       .then((res) => {
         const data = (res.data as { data?: SendLogItem[] })?.data;
         setSendLogs(Array.isArray(data) ? data : []);
+        setLogsError(false);
       })
-      .catch(() => { /* Keep the last successful results when a refresh fails. */ })
+      .catch(() => setLogsError(true))
       .finally(() => setLogsLoading(false));
   }, [deviceId]);
 
   useEffect(() => {
-    const refresh = () => {
-      fetchSendLogs();
-      deviceApi.get(deviceId).then(({ data }) => setSendReady(data.smsSendReady)).catch(() => {});
+    let active = true;
+    let pending = false;
+    const refresh = async () => {
+      if (document.hidden || pending) return;
+      pending = true;
+      try {
+        await Promise.all([
+          fetchSendLogs(),
+          deviceApi.get(deviceId).then(({ data }) => {
+            if (active) { setSendReady(data.smsSendReady === true); setReadinessError(false); }
+          }).catch(() => {
+            if (active) setReadinessError(true);
+          }),
+        ]);
+      } finally {
+        pending = false;
+      }
     };
     refresh();
     const interval = setInterval(refresh, 10000);
-    return () => clearInterval(interval);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [deviceId, fetchSendLogs]);
 
   const handleSendSms = (e: React.FormEvent) => {
     e.preventDefault();
     const phone = sendPhone.trim();
     const content = sendContent.trim();
-    if (!phone || !content || sending || sendReady !== true) return;
+    if (!validPhone || !content || sending || sendReady !== true) return;
     setSending(true);
     const identified = identifySmsDraft(draft.current, deviceId, phone, content);
     draft.current = identified;
@@ -112,11 +139,14 @@ export default function DeviceSendPage() {
           }}
         >
           <form onSubmit={handleSendSms} className="space-y-4">
-            {sendReady === false && <p role="status" className="text-amber-200">{t('smsSendNotReady')}</p>}
+            {readinessError ? <p role="status" className="text-amber-200">{t('firstHeartbeatCheckFailed')}</p> :
+              sendReady === false && <p role="status" className="text-amber-200">{t('smsSendNotReady')}</p>}
             <div>
-              <label className="block text-white/70 mb-2">{t('phone')}</label>
+              <label htmlFor="sms-phone" className="block text-white/70 mb-2">{t('phone')}</label>
               <input
-                type="text"
+                id="sms-phone"
+                type="tel"
+                maxLength={20}
                 value={sendPhone}
                 onChange={(e) => setSendPhone(e.target.value)}
                 placeholder={t('phonePlaceholder')}
@@ -129,8 +159,10 @@ export default function DeviceSendPage() {
               />
             </div>
             <div>
-              <label className="block text-white/70 mb-2">{t('contentLabel')}</label>
+              <label htmlFor="sms-content" className="block text-white/70 mb-2">{t('contentLabel')}</label>
               <textarea
+                id="sms-content"
+                maxLength={1000}
                 value={sendContent}
                 onChange={(e) => setSendContent(e.target.value)}
                 placeholder={t('messagePlaceholder')}
@@ -145,7 +177,7 @@ export default function DeviceSendPage() {
             </div>
             <button
               type="submit"
-              disabled={sending || sendReady !== true || !sendPhone.trim() || !sendContent.trim()}
+              disabled={sending || sendReady !== true || !validPhone || !sendContent.trim()}
               className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
               style={{
                 backgroundColor: '#c2905e',
@@ -166,8 +198,11 @@ export default function DeviceSendPage() {
           }}
         >
           <h2 className="text-xl font-semibold text-white mb-4">{t('sendLogs')}</h2>
+          {logsError && <p role="alert" className="mb-3 text-amber-200">
+            {t('loadSendLogsFailed')} <button type="button" onClick={fetchSendLogs} className="underline">{tCommon('tryAgain')}</button>
+          </p>}
           {logsLoading ? (
-            <p className="text-white/60">Loading...</p>
+            <p className="text-white/60">{tCommon('loading')}</p>
           ) : sendLogs.length === 0 ? (
             <p className="text-white/60">{t('noSendLogs')}</p>
           ) : (

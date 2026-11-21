@@ -10,8 +10,6 @@ interface ConversationListProps {
   onSelectConversation: (phone: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  prependEmptyRow?: boolean;
-  onSelectEmptyRow?: () => void;
 }
 
 export default function ConversationList({
@@ -20,14 +18,12 @@ export default function ConversationList({
   onSelectConversation,
   searchQuery,
   onSearchChange,
-  prependEmptyRow,
-  onSelectEmptyRow,
 }: ConversationListProps) {
   const t = useTranslations('messages');
   const filteredConversations = conversations.filter(
     (conv) =>
-      conv.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+      conv.phone.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+      (conv.lastMessage ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())
   );
 
   return (
@@ -36,6 +32,7 @@ export default function ConversationList({
       <div className="p-4">
         <input
           type="text"
+          aria-label={t('searchConversations')}
           placeholder={t('searchConversations')}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -49,30 +46,16 @@ export default function ConversationList({
 
       {/* 会话列表 */}
       <div className="flex-1 overflow-y-auto">
-        {prependEmptyRow && onSelectEmptyRow && (
-          <div
-            onClick={onSelectEmptyRow}
-            className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
-            style={{
-              backgroundColor: selectedPhone === '__new__' ? 'rgba(194, 144, 94, 0.2)' : 'transparent',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            <div className="flex justify-between items-start mb-1">
-              <span className="font-medium text-white/50">&nbsp;</span>
-            </div>
-            <div className="text-sm text-white/70 truncate">&nbsp;</div>
-            <div className="text-xs text-white/50 mt-1">&nbsp;</div>
-          </div>
-        )}
-        {filteredConversations.length === 0 && !prependEmptyRow ? (
-          <div className="p-4 text-white/50 text-center">{t('noConversations')}</div>
+        {filteredConversations.length === 0 ? (
+          <div className="p-4 text-white/50 text-center">{searchQuery.trim() ? t('noMatchingConversations') : t('noConversations')}</div>
         ) : (
           filteredConversations.map((conversation) => (
-            <div
+            <button
+              type="button"
+              aria-pressed={selectedPhone === conversation.phone}
               key={conversation.phone}
               onClick={() => onSelectConversation(conversation.phone)}
-              className="p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
+              className="block w-full text-left p-4 cursor-pointer transition-all duration-200 hover:bg-white/5"
               style={{
                 backgroundColor:
                   selectedPhone === conversation.phone ? 'rgba(194, 144, 94, 0.2)' : 'transparent',
@@ -98,7 +81,7 @@ export default function ConversationList({
                       <polyline points="7 10 12 15 17 10" />
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    收到
+                    {t('incomingLabel')}
                   </>
                 ) : (
                   <>
@@ -106,7 +89,7 @@ export default function ConversationList({
                       <line x1="22" y1="2" x2="11" y2="13" />
                       <polygon points="22 2 15 22 11 13 2 9 22 2" />
                     </svg>
-                    发出
+                    {t('outgoingLabel')}
                   </>
                 )}
               </div>
@@ -114,7 +97,7 @@ export default function ConversationList({
               <div className="text-xs text-white/50 mt-1">
                 {formatDateTime(conversation.lastMessageTime)}
               </div>
-            </div>
+            </button>
           ))
         )}
       </div>

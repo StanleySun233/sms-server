@@ -2,6 +2,12 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 
 export const TOKEN_KEY = 'auth_token';
 
+export class ApiError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
+
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
     // @ts-ignore - runtime config injected via env-config.js
@@ -49,7 +55,7 @@ apiClient.interceptors.response.use(
     }
     const msg = getResponseMessage(error.response?.data);
     const errorMessage = msg || error.message || '发生未知错误';
-    return Promise.reject(new Error(errorMessage));
+    return Promise.reject(new ApiError(errorMessage, error.response?.status));
   }
 );
 
@@ -106,14 +112,14 @@ export const smsApi = {
   getMessageLines: (deviceId: number) =>
     apiClient.get(`/devices/${deviceId}/messages/lines`),
 
-  getConversations: (deviceId: number, receiverPhone?: string) =>
+  getConversations: (deviceId: number, receiverPhone?: string, signal?: AbortSignal) =>
     apiClient.get(`/devices/${deviceId}/conversations`, {
-      params: receiverPhone != null ? { receiverPhone } : {}
+      params: receiverPhone != null ? { receiverPhone } : {}, signal
     }),
 
-  getMessages: (deviceId: number, phone: string, page: number = 1, size: number = 50, receiverPhone?: string) =>
+  getMessages: (deviceId: number, phone: string, page: number = 1, size: number = 50, receiverPhone?: string, signal?: AbortSignal) =>
     apiClient.get(`/devices/${deviceId}/messages`, {
-      params: { phone, page, size, ...(receiverPhone != null ? { receiverPhone } : {}) }
+      params: { phone, page, size, ...(receiverPhone != null ? { receiverPhone } : {}) }, signal
     }),
 
   sendMessage: (deviceId: number, data: { phone: string; content: string; requestId: string }) =>

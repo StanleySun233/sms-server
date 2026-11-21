@@ -92,6 +92,10 @@ public class RedisService {
         });
     }
 
+    public void invalidateSmsUnreadCountsAfterCommit(List<Long> deviceIds) {
+        afterCommit(() -> redisTemplate.delete(deviceIds.stream().map(id -> "device:unread:" + id).toList()));
+    }
+
     private void afterCommit(Runnable operation) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override

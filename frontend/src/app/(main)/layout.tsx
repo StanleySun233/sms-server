@@ -11,7 +11,7 @@ export default function MainLayout({
   return (
     <AuthGuard>
       <div
-        className="flex flex-col h-screen overflow-hidden"
+        className="flex flex-col h-dvh overflow-hidden"
         style={{ backgroundColor: 'rgb(45, 45, 45)' }}
       >
         <NavBar />

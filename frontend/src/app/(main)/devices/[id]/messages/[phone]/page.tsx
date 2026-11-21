@@ -1,241 +1,280 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { identifySmsDraft, smsApi, type SmsDraft } from '@/lib/api';
+import { deviceApi, identifySmsDraft, smsApi, type SmsDraft } from '@/lib/api';
 import { SmsMessage, Conversation } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import ConversationList from '@/components/ConversationList';
 import ExportButton from '@/components/ExportButton';
 
 export default function ConversationPage() {
+  const params = useParams<{ id: string; phone: string }>();
+  return <ConversationScreen key={JSON.stringify([params.id, params.phone])}
+    deviceId={Number(params.id)} receiverPhone={params.phone} />;
+}
+
+function ConversationScreen({ deviceId, receiverPhone }: { deviceId: number; receiverPhone: string }) {
   const t = useTranslations('messages');
   const tCommon = useTranslations('common');
+  const tDevices = useTranslations('devices');
   const router = useRouter();
-  const params = useParams();
-  const deviceId = parseInt(params.id as string);
-  const receiverPhone = decodeURIComponent(params.phone as string);
-
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedSender, setSelectedSender] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState(false);
+  const [threadError, setThreadError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [sending, setSending] = useState(false);
-  const [newMessage, setNewMessage] = useState('');
+  const [sendReady, setSendReady] = useState<boolean>();
+  const [currentLine, setCurrentLine] = useState<string>();
+  const historicalLine = !!currentLine && receiverPhone !== currentLine;
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const newMessage = selectedSender ? drafts[selectedSender] ?? '' : '';
   const [searchQuery, setSearchQuery] = useState('');
-  const [showNewRow, setShowNewRow] = useState(false);
   const [newConversationPhone, setNewConversationPhone] = useState('');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [toast, setToast] = useState('');
+  const [showConversationList, setShowConversationList] = useState(true);
+  const [retrying, setRetrying] = useState<number[]>([]);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const unreadMessagesRef = useRef<Set<number>>(new Set());
-  const messagesRef = useRef<SmsMessage[]>([]);
-  const sendDraft = useRef<SmsDraft | null>(null);
+  const activeSender = useRef<string | null>(null);
+  const threadRequest = useRef<AbortController | null>(null);
+  const fetchingLatest = useRef(false);
+  const listRequest = useRef<AbortController | null>(null);
+  const olderPage = useRef(1);
+  const scrollAdjustment = useRef<{ height: number; top: number } | 'end' | null>(null);
+  const sendDrafts = useRef(new Map<string, SmsDraft>());
 
-  const fetchConversations = async () => {
-    const response = await smsApi.getConversations(deviceId, receiverPhone);
-    const list = response.data.data || [];
-    setConversations(list);
-    if (list.length > 0 && !selectedSender) {
-      setSelectedSender(list[0].phone);
+  const selectSender = useCallback((phone: string, open = true) => {
+    if (activeSender.current !== phone) {
+      threadRequest.current?.abort();
+      activeSender.current = phone;
+      olderPage.current = 1;
+      scrollAdjustment.current = null;
+      setSelectedSender(phone);
+      setMessages([]);
+      setThreadError(false);
+      setHasMore(false);
+      setLoadingOlder(false);
+      setLoading(phone !== '__new__');
     }
-  };
+    if (open) setShowConversationList(false);
+  }, []);
 
-  const fetchMessages = async (resetPage: boolean = false) => {
-    if (!selectedSender) {
-      setLoading(false);
-      return;
+  const fetchConversations = useCallback(async () => {
+    if (listRequest.current) return;
+    const request = new AbortController();
+    listRequest.current = request;
+    try {
+      const response = await smsApi.getConversations(deviceId, receiverPhone, request.signal);
+      if (request.signal.aborted) return;
+      const list: Conversation[] = response.data.data ?? [];
+      setConversations(list);
+      setListError(false);
+      if (!activeSender.current && list[0]) selectSender(list[0].phone, false);
+    } catch {
+      if (!request.signal.aborted) setListError(true);
+    } finally {
+      if (listRequest.current === request) listRequest.current = null;
+      if (!request.signal.aborted) setListLoading(false);
     }
-    const currentPage = resetPage ? 1 : page;
-    const response = await smsApi.getMessages(deviceId, selectedSender, currentPage, 50, receiverPhone);
-    const data = response.data.data;
-    if (data && data.records) {
-      const records = data.records as SmsMessage[];
-      if (resetPage) {
-        setMessages(records.reverse());
-      } else {
-        const newMsgs = records.filter((msg: SmsMessage) => !messages.find((m) => m.id === msg.id));
-        if (newMsgs.length > 0) {
-          setMessages([...messages, ...newMsgs.reverse()]);
-        }
+  }, [deviceId, receiverPhone, selectSender]);
+
+  const fetchMessages = useCallback(async (mode: 'initial' | 'latest' | 'older') => {
+    const sender = activeSender.current;
+    if (!sender || sender === '__new__') return;
+    if (threadRequest.current && !threadRequest.current.signal.aborted) {
+      if (mode !== 'older' || !fetchingLatest.current) return;
+      threadRequest.current.abort();
+    }
+    const request = new AbortController();
+    threadRequest.current = request;
+    fetchingLatest.current = mode === 'latest';
+    if (mode === 'initial') setLoading(true);
+    if (mode === 'older') setLoadingOlder(true);
+    const page = mode === 'older' ? olderPage.current + 1 : 1;
+    try {
+      const { data } = await smsApi.getMessages(deviceId, sender, page, 50, receiverPhone, request.signal);
+      if (request.signal.aborted) return;
+      const box = messagesContainerRef.current;
+      if (mode === 'older' && box) {
+        scrollAdjustment.current = { height: box.scrollHeight, top: box.scrollTop };
+      } else if (mode === 'initial' || (box && box.scrollHeight - box.clientHeight - box.scrollTop < 80)) {
+        scrollAdjustment.current = 'end';
       }
-      setHasMore(!data.last);
+      const records: SmsMessage[] = data.data.records;
+      setMessages((previous) => {
+        const byId = new Map(previous.map((message) => [message.id, message]));
+        for (const row of records) {
+          const prior = byId.get(row.id);
+          if (!prior || row.updatedAt >= prior.updatedAt) {
+            byId.set(row.id, { ...row, readAt: row.readAt ?? prior?.readAt });
+          }
+        }
+        return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id - b.id);
+      });
+      if (mode !== 'latest' || olderPage.current === 1) {
+        olderPage.current = page;
+        setHasMore(!data.data.last);
+      }
+      setThreadError(false);
+    } catch {
+      if (!request.signal.aborted) setThreadError(true);
+    } finally {
+      if (threadRequest.current === request) {
+        threadRequest.current = null;
+        fetchingLatest.current = false;
+      }
+      if (!request.signal.aborted) {
+        setLoading(false);
+        setLoadingOlder(false);
+      }
     }
-    setLoading(false);
-  };
-
-  const markMessagesAsRead = async (messageIds: number[]) => {
-    const current = messagesRef.current;
-    const unreadIds = messageIds.filter((id) => {
-      const msg = current.find((m) => m.id === id);
-      return msg && !msg.readAt;
-    });
-    if (unreadIds.length === 0) return;
-    await smsApi.markAsRead(unreadIds);
-    setMessages((prev) =>
-      prev.map((msg) =>
-        unreadIds.includes(msg.id) ? { ...msg, readAt: new Date().toISOString() } : msg
-      )
-    );
-  };
-
-  useEffect(() => {
-    fetchConversations();
   }, [deviceId, receiverPhone]);
 
   useEffect(() => {
-    if (selectedSender && selectedSender !== '__new__') {
-      setLoading(true);
-      setMessages([]);
-      setPage(1);
-      fetchMessages(true);
-    } else {
-      setLoading(false);
-      setMessages([]);
-    }
-  }, [deviceId, receiverPhone, selectedSender]);
-
-  const mergeMessagesFromRecords = (records: SmsMessage[]) => {
-    if (!records.length) return;
-    setMessages((prev) => {
-      const byId = new Map(prev.map((m) => [m.id, m]));
-      for (const r of records) {
-        const existing = byId.get(r.id);
-        if (existing) {
-          if (existing.status !== r.status || existing.updatedAt !== r.updatedAt) {
-            byId.set(r.id, { ...existing, status: r.status, updatedAt: r.updatedAt });
+    let active = true;
+    let checkingDevice = false;
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return;
+      void fetchConversations();
+      if (!checkingDevice) {
+        checkingDevice = true;
+        void deviceApi.get(deviceId).then(({ data }) => {
+          if (active) {
+            setSendReady(data.smsSendReady === true);
+            setCurrentLine(data.currentPhoneNumber || undefined);
           }
-        } else {
-          byId.set(r.id, r);
-        }
+        }).catch(() => {}).finally(() => { checkingDevice = false; });
       }
-      return Array.from(byId.values()).sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-    });
-  };
-
-  useEffect(() => {
-    if (!selectedSender || selectedSender === '__new__') return;
-    const tick = async () => {
-      const response = await smsApi.getMessages(deviceId, selectedSender, 1, 50, receiverPhone);
-      const data = response.data.data;
-      if (data?.records?.length) mergeMessagesFromRecords(data.records as SmsMessage[]);
+      void fetchMessages('latest');
     };
-    const interval = setInterval(tick, 30000);
-    const onFocus = () => tick();
-    window.addEventListener('focus', onFocus);
+    refresh();
+    const timer = window.setInterval(refresh, 15000);
+    document.addEventListener('visibilitychange', refresh);
     return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
+      active = false;
+      listRequest.current?.abort();
+      listRequest.current = null;
+      threadRequest.current?.abort();
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
     };
-  }, [deviceId, receiverPhone, selectedSender]);
+  }, [deviceId, fetchConversations, fetchMessages]);
+
+  useEffect(() => { void fetchMessages('initial'); }, [selectedSender, fetchMessages]);
 
   useEffect(() => {
-    if (!selectedSender || selectedSender === '__new__') return;
-    const t = setTimeout(() => {
-      smsApi.getMessages(deviceId, selectedSender, 1, 50, receiverPhone).then((res) => {
-        const data = res.data.data;
-        if (data?.records?.length) mergeMessagesFromRecords(data.records as SmsMessage[]);
-      });
-    }, 2000);
-    return () => clearTimeout(t);
-  }, [deviceId, receiverPhone, selectedSender]);
+    const box = messagesContainerRef.current;
+    if (box && !showConversationList && window.matchMedia('(max-width: 767px)').matches) {
+      box.scrollTop = box.scrollHeight;
+    }
+  }, [showConversationList]);
 
   useEffect(() => {
-    messagesRef.current = messages;
+    const box = messagesContainerRef.current;
+    const adjustment = scrollAdjustment.current;
+    scrollAdjustment.current = null;
+    if (!box || !adjustment) return;
+    box.scrollTop = adjustment === 'end' ? box.scrollHeight : adjustment.top + box.scrollHeight - adjustment.height;
   }, [messages]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
-            const direction = entry.target.getAttribute('data-direction');
-            if (messageId && direction === 'received') {
-              unreadMessagesRef.current.add(messageId);
-            }
-          }
-        });
-      },
-      { threshold: 0.5 }
-    );
-    const messageBubbles = document.querySelectorAll('[data-message-id]');
-    messageBubbles.forEach((bubble) => observer.observe(bubble));
-    return () => observer.disconnect();
-  }, [messages]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (unreadMessagesRef.current.size > 0) {
-        const messageIds = Array.from(unreadMessagesRef.current);
-        unreadMessagesRef.current.clear();
-        markMessagesAsRead(messageIds);
+    const box = messagesContainerRef.current;
+    if (!box || showConversationList && window.matchMedia('(max-width: 767px)').matches) return;
+    const unread = new Set(messages.filter((message) => message.direction === 'received' && !message.readAt).map((message) => message.id));
+    if (!unread.size) return;
+    const visible = new Set<number>();
+    let active = true;
+    let pending = false;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const id = Number((entry.target as HTMLElement).dataset.messageId);
+        if (entry.isIntersecting && unread.has(id)) visible.add(id);
+        else visible.delete(id);
       }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    }, { root: box, threshold: 0.5 });
+    box.querySelectorAll('[data-message-id]').forEach((element) => observer.observe(element));
+    const timer = window.setInterval(async () => {
+      if (!active || pending || document.hidden || !visible.size) return;
+      const ids = [...visible];
+      pending = true;
+      try {
+        await smsApi.markAsRead(ids);
+        if (!active) return;
+        const readAt = new Date().toISOString();
+        setMessages((previous) => previous.map((message) => ids.includes(message.id) ? { ...message, readAt } : message));
+        void fetchConversations();
+      } catch {
+        // Keep the visible messages eligible for the next attempt.
+      } finally {
+        pending = false;
+      }
+    }, 2500);
+    return () => { active = false; clearInterval(timer); observer.disconnect(); };
+  }, [messages, fetchConversations, showConversationList]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const phone = selectedSender === '__new__' ? newConversationPhone.trim() : selectedSender;
-    if (!phone || !newMessage.trim() || sending) return;
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(''), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const validPhone = /^\+?[0-9]{5,19}$/.test((selectedSender === '__new__' ? newConversationPhone : selectedSender ?? '').trim());
+
+  async function handleSendMessage(event: React.FormEvent) {
+    event.preventDefault();
+    if (!validPhone || !selectedSender || !newMessage.trim() || sending || !sendReady || historicalLine) return;
+    const sender = selectedSender;
+    const phone = sender === '__new__' ? newConversationPhone.trim() : sender;
     setSending(true);
     try {
-      const identified = identifySmsDraft(sendDraft.current, deviceId, phone, newMessage.trim());
-      sendDraft.current = identified;
-      const res = await smsApi.sendMessage(deviceId, identified);
-      sendDraft.current = null;
-      setNewMessage('');
+      const draft = identifySmsDraft(sendDrafts.current.get(sender) ?? null, deviceId, phone, newMessage.trim());
+      sendDrafts.current.set(sender, draft);
+      const { data } = await smsApi.sendMessage(deviceId, draft);
+      sendDrafts.current.delete(sender);
+      setDrafts((previous) => ({ ...previous, [sender]: '' }));
       setToast(t('sendSuccess'));
-      setTimeout(() => setToast(''), 2000);
-      if (selectedSender === '__new__') {
-        setSelectedSender(phone);
+      if (activeSender.current === sender && sender === '__new__') {
+        selectSender(phone);
         setNewConversationPhone('');
-        setShowNewRow(false);
-        void fetchConversations().catch(() => {});
-      } else {
-        const created = res.data?.data as SmsMessage | undefined;
-        if (created?.id) {
-          setMessages((prev) => prev.some((message) => message.id === created.id) ? prev : [...prev, created]);
-        } else {
-          setTimeout(() => fetchMessages(false), 1000);
-        }
+      } else if (activeSender.current === sender && data.data?.id) {
+        scrollAdjustment.current = 'end';
+        setMessages((previous) => previous.some((message) => message.id === data.data.id) ? [...previous] : [...previous, data.data]);
       }
+      void fetchConversations();
     } catch (error) {
       setToast(error instanceof Error ? error.message : t('sendFailed'));
-      setTimeout(() => setToast(''), 3000);
     } finally {
       setSending(false);
     }
-  };
-
-  const handleSelectConversation = (phone: string) => {
-    setSelectedSender(phone);
-    if (phone !== '__new__') setShowNewRow(false);
-  };
-
-  if (loading && !selectedSender) {
-    return (
-      <div className="h-full flex items-center justify-center p-4">
-        <div className="text-white text-xl">{tCommon('loading')}</div>
-      </div>
-    );
   }
 
+  async function retryMessage(id: number) {
+    const sender = activeSender.current;
+    setRetrying((ids) => [...ids, id]);
+    try {
+      await smsApi.retryMessage(deviceId, id);
+      if (activeSender.current === sender) {
+        setMessages((previous) => previous.map((message) => message.id === id ? { ...message, status: 'pending' } : message));
+      }
+      setToast(t('sendSuccess'));
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t('sendFailed'));
+    } finally {
+      setRetrying((ids) => ids.filter((value) => value !== id));
+    }
+  }
   return (
     <div className="h-full flex flex-col min-h-0 p-4">
       {toast && (
         <div
+          role="status"
           className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-white text-sm"
           style={{
             backgroundColor: 'rgba(0, 0, 0, 0.75)',
@@ -249,7 +288,7 @@ export default function ConversationPage() {
       <div className="flex-1 flex flex-col min-h-0 mx-auto w-full max-w-6xl">
         <div className="flex gap-4 flex-1 min-h-0">
           <div
-            className="w-80 shrink-0 flex flex-col rounded-2xl shadow-xl overflow-hidden min-h-0"
+            className={`${showConversationList ? 'flex' : 'hidden'} w-full md:w-72 lg:w-80 md:flex shrink-0 flex-col rounded-2xl shadow-xl overflow-hidden min-h-0`}
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(16px)',
@@ -266,10 +305,7 @@ export default function ConversationPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowNewRow(true);
-                    setSelectedSender('__new__');
-                  }}
+                  onClick={() => selectSender('__new__')}
                   className="px-3 py-1.5 rounded-lg text-sm text-white transition-colors"
                   style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -284,20 +320,23 @@ export default function ConversationPage() {
               </div>
             </div>
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-              <ConversationList
-              conversations={conversations}
-              selectedPhone={selectedSender ?? undefined}
-              onSelectConversation={handleSelectConversation}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              prependEmptyRow={showNewRow}
-              onSelectEmptyRow={() => setSelectedSender('__new__')}
-            />
+              {listError && <div role="alert" className="px-4 pt-3 text-sm text-amber-200">
+                {t('conversationLoadFailed')} <button type="button" className="underline" onClick={fetchConversations}>{t('retryLoad')}</button>
+              </div>}
+              {listLoading ? <p role="status" className="p-4 text-white/70">{tCommon('loading')}</p> : (
+                <ConversationList
+                  conversations={conversations}
+                  selectedPhone={selectedSender ?? undefined}
+                  onSelectConversation={selectSender}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                />
+              )}
             </div>
           </div>
 
           <div
-            className="flex-1 min-h-0 rounded-2xl shadow-xl flex flex-col overflow-hidden"
+            className={`${showConversationList ? 'hidden' : 'flex'} md:flex flex-1 min-w-0 min-h-0 rounded-2xl shadow-xl flex-col overflow-hidden`}
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(16px)',
@@ -310,9 +349,13 @@ export default function ConversationPage() {
                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               }}
             >
+              <button type="button" className="md:hidden shrink-0 text-white/80" onClick={() => setShowConversationList(true)}>
+                ← {t('conversationList')}
+              </button>
               {selectedSender === '__new__' ? (
                 <input
-                  type="text"
+                  type="tel"
+                  aria-label={t('newPhonePlaceholder')}
                   value={newConversationPhone}
                   onChange={(e) => setNewConversationPhone(e.target.value)}
                   placeholder={t('newPhonePlaceholder')}
@@ -323,7 +366,7 @@ export default function ConversationPage() {
                   }}
                 />
               ) : (
-                <h2 className="text-2xl font-semibold text-white">
+                <h2 className="min-w-0 break-all text-base sm:text-xl font-semibold text-white">
                   {selectedSender ?? t('noConversations')}
                 </h2>
               )}
@@ -338,10 +381,18 @@ export default function ConversationPage() {
 
             <div
               ref={messagesContainerRef}
-              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2"
-              style={{ scrollBehavior: 'smooth' }}
+              className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 [overflow-anchor:none]"
+
             >
-              {!selectedSender || selectedSender === '__new__' ? (
+              {threadError && <div role="alert" className="pb-2 text-center text-sm text-amber-200">
+                {t('threadLoadFailed')} <button type="button" className="underline" onClick={() => fetchMessages(messages.length ? 'latest' : 'initial')}>{t('retryLoad')}</button>
+              </div>}
+              {hasMore && <div className="text-center">
+                <button type="button" className="px-4 py-2 text-sm text-white underline disabled:opacity-60" disabled={loadingOlder} onClick={() => fetchMessages('older')}>
+                  {loadingOlder ? tCommon('loading') : t('olderMessages')}
+                </button>
+              </div>}
+              {loading ? <p role="status" className="mt-8 text-center text-white/70">{tCommon('loading')}</p> : !selectedSender || selectedSender === '__new__' ? (
                 <div className="text-white/50 text-center mt-8">
                   {selectedSender === '__new__' ? t('noMessages') : t('noConversations')}
                 </div>
@@ -357,18 +408,12 @@ export default function ConversationPage() {
                     <MessageBubble
                       message={message}
                       deviceId={deviceId}
-                      onRetry={(id) => {
-                        smsApi.retryMessage(deviceId, id).then(() => {
-                          setMessages((prev) =>
-                            prev.map((m) => (m.id === id ? { ...m, status: 'pending' as const } : m))
-                          );
-                        });
-                      }}
+                      onRetry={sendReady && !historicalLine && !retrying.includes(message.id) ? retryMessage : undefined}
                     />
                   </div>
                 ))
               )}
-              <div ref={messagesEndRef} />
+
             </div>
 
             {selectedSender ? (
@@ -377,14 +422,22 @@ export default function ConversationPage() {
                 className="p-4"
                 style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
               >
-                <div className="flex gap-2">
-                  <input
-                    type="text"
+                {historicalLine ? <p role="status" className="mb-2 text-sm text-amber-200">
+                  {t('historicalLine')} <button type="button" className="underline" onClick={() => router.push(`/devices/${deviceId}/messages/${encodeURIComponent(currentLine)}`)}>{t('openCurrentLine')}</button>
+                </p> : sendReady === false && <p className="mb-2 text-sm text-amber-200">{tDevices('smsSendNotReady')}</p>}
+                <div className="flex items-end gap-2">
+                  <textarea
+                    rows={2}
+                    maxLength={1000}
+                    aria-label={t('placeholderMessage')}
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setDrafts((previous) => ({ ...previous, [selectedSender]: value }));
+                    }}
                     placeholder={t('placeholderMessage')}
                     disabled={sending}
-                    className="flex-1 px-4 py-3 rounded-lg text-white placeholder-white/50"
+                    className="min-w-0 flex-1 resize-y px-3 py-2 rounded-lg text-white placeholder-white/50"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -392,8 +445,8 @@ export default function ConversationPage() {
                   />
                   <button
                     type="submit"
-                    disabled={sending || !newMessage.trim() || (selectedSender === '__new__' && !newConversationPhone.trim())}
-                    className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+                    disabled={sending || !sendReady || historicalLine || !validPhone || !newMessage.trim()}
+                    className="shrink-0 px-3 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
                     style={{
                       backgroundColor: '#c2905e',
                       color: '#fff',

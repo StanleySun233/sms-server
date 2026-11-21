@@ -35,12 +35,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const { user, refreshUser } = useAuth();
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [mounted, setMounted] = useState(false);
-  const [timeZone, setTimeZone] = useState<string | undefined>(undefined);
+  const [timeZone, setTimeZone] = useState('UTC');
 
   useEffect(() => {
     setLocaleState(getStoredLocale());
     setMounted(true);
-    setTimeZone(getBrowserTimeZone());
+    setTimeZone(getBrowserTimeZone() ?? 'UTC');
   }, []);
 
   useEffect(() => {
@@ -61,11 +61,15 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(LOCALE_STORAGE_KEY, newLocale);
       }
       if (user) {
-        authApi.updatePreferences({ locale: newLocale }).then(() => refreshUser());
+        void authApi.updatePreferences({ locale: newLocale }).then(() => refreshUser()).catch(() => {});
       }
     },
     [user, refreshUser]
   );
+
+  useEffect(() => {
+    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
+  }, [locale]);
 
   const value: LocaleContextType = { locale, setLocale };
 
