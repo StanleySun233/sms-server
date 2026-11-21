@@ -4,15 +4,18 @@ import com.smsserver.mapper.SmsMessageMapper;
 import com.smsserver.mapper.MissedCallMapper;
 import com.smsserver.service.RedisService;
 import com.smsserver.service.SmsService;
+import com.smsserver.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import java.util.List;
@@ -28,6 +31,10 @@ class SmsServerApplicationTests {
     private MissedCallMapper missedCalls;
     @Autowired
     private SmsService sms;
+    @Autowired
+    private AuthService auth;
+    @Autowired
+    private BCryptPasswordEncoder passwords;
     @MockBean
     private RedisService redis;
 
@@ -118,6 +125,36 @@ class SmsServerApplicationTests {
             assertEquals("10002", summaries.get(1).getPhone());
         } finally {
             jdbc.execute("DROP TABLE missed_call");
+        }
+    }
+
+    @Test
+    void emailAndPasswordUpdatesPreserveEachOthersFields() {
+        jdbc.execute("""
+                CREATE TABLE users (
+                    id BIGINT PRIMARY KEY, username VARCHAR(50), email VARCHAR(255) UNIQUE,
+                    password_hash VARCHAR(100), created_at TIMESTAMP
+                )
+                """);
+        try {
+            String original = passwords.encode("starting-test-password");
+            jdbc.update("INSERT INTO users (id,username,email,password_hash) VALUES (?,?,?,?)",
+                    1, "first", "first@example.invalid", original);
+            jdbc.update("INSERT INTO users (id,username,email,password_hash) VALUES (?,?,?,?)",
+                    2, "second", "second@example.invalid", original);
+
+            auth.updateProfile(1L, "updated@example.invalid");
+            assertEquals(original, jdbc.queryForObject("SELECT password_hash FROM users WHERE id=1", String.class));
+            var duplicate = assertThrows(IllegalArgumentException.class, () -> auth.updateProfile(1L, "second@example.invalid"));
+            assertEquals("Email already exists", duplicate.getMessage());
+            auth.changePassword(1L, "starting-test-password", "replacement-test-password");
+            assertEquals("updated@example.invalid", jdbc.queryForObject("SELECT email FROM users WHERE id=1", String.class));
+            assertTrue(passwords.matches("replacement-test-password",
+                    jdbc.queryForObject("SELECT password_hash FROM users WHERE id=1", String.class)));
+            assertThrows(IllegalArgumentException.class,
+                    () -> auth.changePassword(1L, "starting-test-password", "another-test-password"));
+        } finally {
+            jdbc.execute("DROP TABLE users");
         }
     }
 }

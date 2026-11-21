@@ -19,7 +19,7 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 
 # Build application
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -B
 
 # Production stage
 FROM eclipse-temurin:18-jre

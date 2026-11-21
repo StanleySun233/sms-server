@@ -229,6 +229,8 @@
     "yesterdayAt": "昨天 {time}"
   },
   "settings": {
+    "profileSaveFailed": "邮箱未能保存，请重试。",
+    "passwordSaveFailed": "密码未能更新，请重试。",
     "title": "个人设置",
     "profile": "个人信息",
     "username": "用户名",

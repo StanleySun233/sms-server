@@ -229,6 +229,8 @@
     "yesterdayAt": "Yesterday at {time}"
   },
   "settings": {
+    "profileSaveFailed": "Could not save the email address. Try again.",
+    "passwordSaveFailed": "Could not update your password. Try again.",
     "title": "Settings",
     "profile": "Profile",
     "username": "Username",

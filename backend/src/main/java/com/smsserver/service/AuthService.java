@@ -1,11 +1,13 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smsserver.dto.auth.LoginRequest;
 import com.smsserver.dto.auth.RegisterRequest;
 import com.smsserver.entity.User;
 import com.smsserver.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,13 +70,15 @@ public class AuthService {
         User user = userMapper.selectById(userId);
         if (user == null) throw new IllegalArgumentException("User not found");
         if (email != null && !email.isBlank()) {
-            LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(User::getEmail, email).ne(User::getId, userId);
-            if (userMapper.selectOne(wrapper) != null) {
+            String normalized = email.trim();
+            try {
+                userMapper.update(null, new LambdaUpdateWrapper<User>()
+                        .eq(User::getId, userId)
+                        .set(User::getEmail, normalized));
+            } catch (DuplicateKeyException e) {
                 throw new IllegalArgumentException("Email already exists");
             }
-            user.setEmail(email.trim());
-            userMapper.updateById(user);
+            user.setEmail(normalized);
         }
         return user;
     }
@@ -86,7 +90,10 @@ public class AuthService {
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userMapper.updateById(user);
+        int changed = userMapper.update(null, new LambdaUpdateWrapper<User>()
+                .eq(User::getId, userId)
+                .eq(User::getPasswordHash, user.getPasswordHash())
+                .set(User::getPasswordHash, passwordEncoder.encode(newPassword)));
+        if (changed != 1) throw new IllegalArgumentException("Current password is incorrect");
     }
 }
