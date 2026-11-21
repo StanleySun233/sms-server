@@ -6,6 +6,7 @@ import com.smsserver.service.RedisService;
 import com.smsserver.service.SmsService;
 import com.smsserver.service.AuthService;
 import com.smsserver.service.DeviceService;
+import com.smsserver.service.DashboardService;
 import com.smsserver.dto.device.UpdateDeviceRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,8 @@ class SmsServerApplicationTests {
     private AuthService auth;
     @Autowired
     private DeviceService devices;
+    @Autowired
+    private DashboardService dashboard;
     @Autowired
     private BCryptPasswordEncoder passwords;
     @MockBean
@@ -234,5 +237,33 @@ class SmsServerApplicationTests {
                     latitude DECIMAL(10,7), longitude DECIMAL(11,7), created_at TIMESTAMP
                 )
                 """);
+    }
+
+    @Test
+    void dashboardCountsOnlyTheOwnersRecordsAndIncludesDevicesWithNoActivity() {
+        createDeviceTable();
+        jdbc.execute("CREATE TABLE sms_message (id BIGINT PRIMARY KEY, device_id BIGINT, direction VARCHAR(12), read_at TIMESTAMP)");
+        jdbc.execute("CREATE TABLE missed_call (id BIGINT PRIMARY KEY, device_id BIGINT, read_at TIMESTAMP)");
+        try {
+            jdbc.update("INSERT INTO devices (id,user_id,alias) VALUES (1,10,'first'),(2,10,'empty'),(3,20,'foreign')");
+            jdbc.update("""
+                    INSERT INTO sms_message VALUES
+                    (1,1,'received',NULL), (2,1,'received','2026-11-21 12:00:00'),
+                    (3,1,'sent',NULL), (4,1,'sent',NULL), (5,3,'received',NULL), (6,3,'sent',NULL)
+                    """);
+            jdbc.update("INSERT INTO missed_call VALUES (1,1,NULL),(2,1,'2026-11-21 12:00:00'),(3,3,NULL)");
+            var stats = dashboard.getDashboardStats(10L);
+            assertEquals(2, stats.getDevices().size());
+            assertEquals(2, stats.getOfflineDevices());
+            assertEquals(2, stats.getTotalSentMessages());
+            assertEquals(1, stats.getTotalUnreadMessages());
+            assertEquals(1, stats.getTotalUnreadCalls());
+            assertEquals(0, stats.getDevices().stream().filter(device -> device.getId().equals(2L)).findFirst().orElseThrow().getUnreadMessages());
+            assertTrue(dashboard.getDashboardStats(30L).getDevices().isEmpty());
+        } finally {
+            jdbc.execute("DROP TABLE missed_call");
+            jdbc.execute("DROP TABLE sms_message");
+            jdbc.execute("DROP TABLE devices");
+        }
     }
 }

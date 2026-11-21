@@ -1,13 +1,8 @@
 package com.smsserver.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smsserver.dto.dashboard.DashboardStatsResponse;
-import com.smsserver.entity.Device;
-import com.smsserver.entity.MissedCall;
-import com.smsserver.entity.SmsMessage;
+import com.smsserver.dto.dashboard.DeviceOverview;
 import com.smsserver.mapper.DeviceMapper;
-import com.smsserver.mapper.MissedCallMapper;
-import com.smsserver.mapper.SmsMessageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,8 +16,6 @@ import java.util.List;
 @Slf4j
 public class DashboardService {
     private final DeviceMapper deviceMapper;
-    private final SmsMessageMapper smsMessageMapper;
-    private final MissedCallMapper missedCallMapper;
     private final DeviceService deviceService;
 
     /**
@@ -31,24 +24,19 @@ public class DashboardService {
     public DashboardStatsResponse getDashboardStats(Long userId) {
         DashboardStatsResponse response = new DashboardStatsResponse();
 
-        // Get all user devices
-        LambdaQueryWrapper<Device> deviceWrapper = new LambdaQueryWrapper<>();
-        deviceWrapper.eq(Device::getUserId, userId)
-                    .orderByDesc(Device::getCreatedAt);
-        List<Device> devices = deviceMapper.selectList(deviceWrapper);
+        List<DeviceOverview> devices = deviceMapper.findDashboardDevices(userId);
 
-        // Initialize counters
         int onlineCount = 0;
         int warningCount = 0;
         int offlineCount = 0;
         int totalUnreadMessages = 0;
         int totalUnreadCalls = 0;
-        List<Long> deviceIds = new ArrayList<>();
+        int totalSentMessages = 0;
 
         List<DashboardStatsResponse.DeviceStats> deviceStatsList = new ArrayList<>();
 
         // Process each device
-        for (Device device : devices) {
+        for (DeviceOverview device : devices) {
             String status = deviceService.calculateDeviceStatus(device);
 
             // Count device status
@@ -64,27 +52,17 @@ public class DashboardService {
                     break;
             }
 
-            LambdaQueryWrapper<SmsMessage> messageWrapper = new LambdaQueryWrapper<>();
-            messageWrapper.eq(SmsMessage::getDeviceId, device.getId())
-                         .eq(SmsMessage::getDirection, "received")
-                         .isNull(SmsMessage::getReadAt);
-            long unreadMessages = smsMessageMapper.selectCount(messageWrapper);
-            totalUnreadMessages += unreadMessages;
-
-            // Count unread missed calls for this device
-            LambdaQueryWrapper<MissedCall> callWrapper = new LambdaQueryWrapper<>();
-            callWrapper.eq(MissedCall::getDeviceId, device.getId())
-                      .isNull(MissedCall::getReadAt);
-            long unreadCalls = missedCallMapper.selectCount(callWrapper);
-            totalUnreadCalls += unreadCalls;
+            totalUnreadMessages += device.getUnreadMessages();
+            totalUnreadCalls += device.getUnreadCalls();
+            totalSentMessages += device.getOutgoingTasks();
 
             // Create device stats
             DashboardStatsResponse.DeviceStats stats = new DashboardStatsResponse.DeviceStats();
             stats.setId(device.getId());
             stats.setAlias(device.getAlias());
             stats.setStatus(status);
-            stats.setUnreadMessages((int) unreadMessages);
-            stats.setUnreadCalls((int) unreadCalls);
+            stats.setUnreadMessages(device.getUnreadMessages());
+            stats.setUnreadCalls(device.getUnreadCalls());
             stats.setLastHeartbeatAt(
                 device.getLastHeartbeatAt() != null
                     ? device.getLastHeartbeatAt().atZone(ZoneOffset.UTC).toInstant().toString()
@@ -95,27 +73,17 @@ public class DashboardService {
             stats.setSignalStrength(device.getSignalStrength());
 
             deviceStatsList.add(stats);
-            deviceIds.add(device.getId());
         }
-
-        LambdaQueryWrapper<SmsMessage> sentWrapper = new LambdaQueryWrapper<>();
-        sentWrapper.eq(SmsMessage::getDirection, "sent");
-        if (!deviceIds.isEmpty()) {
-            sentWrapper.in(SmsMessage::getDeviceId, deviceIds);
-        } else {
-            sentWrapper.eq(SmsMessage::getDeviceId, -1L);
-        }
-        long totalSentMessages = smsMessageMapper.selectCount(sentWrapper);
 
         response.setOnlineDevices(onlineCount);
         response.setWarningDevices(warningCount);
         response.setOfflineDevices(offlineCount);
         response.setTotalUnreadMessages(totalUnreadMessages);
         response.setTotalUnreadCalls(totalUnreadCalls);
-        response.setTotalSentMessages((int) totalSentMessages);
+        response.setTotalSentMessages(totalSentMessages);
         response.setDevices(deviceStatsList);
 
-        log.info("Dashboard stats for user {}: {} online, {} warning, {} offline, {} unread messages, {} unread calls",
+        log.debug("Dashboard stats for user {}: {} online, {} warning, {} offline, {} unread messages, {} unread calls",
                 userId, onlineCount, warningCount, offlineCount, totalUnreadMessages, totalUnreadCalls);
 
         return response;

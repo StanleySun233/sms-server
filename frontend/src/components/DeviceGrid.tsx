@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { DeviceStats } from '@/lib/types';
-import { parseUtcAndFormatLocal, getDeviceStatusFromHeartbeat } from '@/lib/dateUtils';
-import { useRouter } from 'next/navigation';
+import { parseUtcAndFormatLocal } from '@/lib/dateUtils';
+import Link from 'next/link';
 import StatusIndicator from './StatusIndicator';
 
 interface DeviceGridProps {
@@ -12,7 +12,6 @@ interface DeviceGridProps {
 
 export default function DeviceGrid({ devices }: DeviceGridProps) {
   const t = useTranslations('devices');
-  const router = useRouter();
 
   if (devices.length === 0) {
     return (
@@ -25,38 +24,41 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
         }}
       >
         <p className="text-white/70 text-lg">{t('addFirstHint')}</p>
+        <Link href="/devices/new" className="mt-3 inline-block rounded-lg bg-[#c2905e]/30 px-4 py-2 text-white">
+          {t('addDevice')}
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-6 gap-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {devices.map((device) => (
-        <div
+        <Link
           key={device.id}
-          className="rounded-2xl p-6 shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+          href={`/devices/${device.id}`}
+          className="min-w-0 rounded-2xl p-4 sm:p-6 shadow-xl transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
-          onClick={() => router.push(`/devices/${device.id}`)}
         >
           <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-2">{device.alias}</h3>
-              <StatusIndicator status={getDeviceStatusFromHeartbeat(device.lastHeartbeatAt)} />
+            <div className="min-w-0">
+              <h3 className="break-words text-xl font-semibold text-white mb-2">{device.alias}</h3>
+              <StatusIndicator status={device.status} />
             </div>
           </div>
 
           <div className="space-y-3 text-white/70 text-sm">
             <div className="flex items-center gap-2">
               <span className="font-medium">📱 {t('phone')}：</span>
-              <span>{device.currentPhoneNumber || t('neverOnline')}</span>
+              <span className="break-all">{device.currentPhoneNumber || t('neverOnline')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-medium">🔢 {t('imei')}：</span>
-              <span>{device.imei != null && device.imei !== '' ? device.imei : t('neverOnline')}</span>
+              <span className="break-all">{device.imei != null && device.imei !== '' ? device.imei : t('neverOnline')}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-medium">📶 {t('signalStrength')}：</span>
@@ -67,7 +69,7 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
               <span>{device.lastHeartbeatAt ? parseUtcAndFormatLocal(device.lastHeartbeatAt) : t('neverOnline')}</span>
             </div>
 
-            <div className="flex gap-4 mt-4 pt-4 border-t border-white/10">
+            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
               {device.unreadMessages > 0 && (
                 <div
                   className="flex items-center gap-2 px-3 py-1 rounded-lg"
@@ -101,7 +103,7 @@ export default function DeviceGrid({ devices }: DeviceGridProps) {
               )}
             </div>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );
