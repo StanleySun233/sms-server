@@ -1,6 +1,7 @@
 package com.smsserver;
 
 import com.smsserver.mapper.SmsMessageMapper;
+import com.smsserver.mapper.MissedCallMapper;
 import com.smsserver.service.RedisService;
 import com.smsserver.service.SmsService;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,8 @@ class SmsServerApplicationTests {
     private JdbcTemplate jdbc;
     @Autowired
     private SmsMessageMapper messages;
+    @Autowired
+    private MissedCallMapper missedCalls;
     @Autowired
     private SmsService sms;
     @MockBean
@@ -90,6 +93,31 @@ class SmsServerApplicationTests {
         } finally {
             jdbc.execute("DROP TABLE sms_message");
             jdbc.execute("DROP TABLE devices");
+        }
+    }
+
+    @Test
+    void missedCallSummaryCountsEachNumberOnlyOnTheRequestedDevice() {
+        jdbc.execute("""
+                CREATE TABLE missed_call (
+                    id BIGINT PRIMARY KEY, device_id BIGINT, phone_number VARCHAR(20), call_time TIMESTAMP
+                )
+                """);
+        try {
+            jdbc.update("""
+                    INSERT INTO missed_call VALUES
+                    (1,1,'10001','2026-11-21 12:00:00'),
+                    (2,1,'10001','2026-11-21 14:00:00'),
+                    (3,1,'10002','2026-11-21 13:00:00'),
+                    (4,2,'10001','2026-11-21 15:00:00')
+                    """);
+            var summaries = missedCalls.findSummaries(1L);
+            assertEquals(2, summaries.size());
+            assertEquals("10001", summaries.get(0).getPhone());
+            assertEquals(2L, summaries.get(0).getCount());
+            assertEquals("10002", summaries.get(1).getPhone());
+        } finally {
+            jdbc.execute("DROP TABLE missed_call");
         }
     }
 }

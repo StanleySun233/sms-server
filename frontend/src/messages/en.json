@@ -209,6 +209,7 @@
     "exportFailed": "Failed to export"
   },
   "calls": {
+    "markReadFailed": "Could not mark the calls as read. Try again.",
     "title": "Missed Calls",
     "backToDevice": "Back to device",
     "noMissedCalls": "No missed calls",

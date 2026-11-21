@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ElMessage } from 'element-plus';
 import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
 import DeviceCard from '@/components/DeviceCard';
@@ -14,17 +13,22 @@ export default function DevicesPage() {
   const router = useRouter();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchDevices = async () => {
-    const response = await deviceApi.list();
-    setDevices(response.data);
-  };
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    fetchDevices().catch((error: any) => {
-      ElMessage.error(error.message || t('loadFailed'));
-    }).finally(() => setLoading(false));
-  }, []);
+    let active = true;
+    void deviceApi.list().then(({ data }) => {
+      if (!active) return;
+      setDevices(data);
+      setLoadError(false);
+    }).catch(() => {
+      if (active) setLoadError(true);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [reload]);
 
   if (loading) {
     return (
@@ -50,7 +54,11 @@ export default function DevicesPage() {
         </button>
       </div>
 
-      {devices.length === 0 ? (
+      {loadError ? (
+        <p role="alert" className="rounded-lg border border-white/20 p-4 text-amber-100">
+          {t('loadFailed')} <button type="button" className="underline" onClick={() => setReload((value) => value + 1)}>{tCommon('tryAgain')}</button>
+        </p>
+      ) : devices.length === 0 ? (
         <div
           className="rounded-2xl p-12 text-center"
           style={{

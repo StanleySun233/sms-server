@@ -61,6 +61,13 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
+function requireApiSuccess<T extends { data: { code: number; message?: string } }>(response: T): T {
+  if (response.data.code !== 200) {
+    throw new ApiError(response.data.message || 'Request failed', response.data.code);
+  }
+  return response;
+}
+
 export type SmsDraft = { deviceId: number; phone: string; content: string; requestId: string };
 
 export function identifySmsDraft(previous: SmsDraft | null, deviceId: number, phone: string, content: string): SmsDraft {
@@ -145,12 +152,12 @@ export const smsApi = {
 
 // Missed Call API functions
 export const missedCallApi = {
-  getMissedCalls: (deviceId: number) => apiClient.get(`/devices/${deviceId}/missed-calls`),
+  getMissedCalls: (deviceId: number) => apiClient.get(`/devices/${deviceId}/missed-calls`).then(requireApiSuccess),
   getCallHistory: (deviceId: number, phone: string) =>
-    apiClient.get(`/devices/${deviceId}/calls`, { params: { phone } }),
-  markAsRead: (callIds: number[]) => apiClient.put('/calls/read', { callIds }),
+    apiClient.get(`/devices/${deviceId}/calls`, { params: { phone } }).then(requireApiSuccess),
+  markAsRead: (callIds: number[]) => apiClient.put('/calls/read', { callIds }).then(requireApiSuccess),
   getUnreadCount: (deviceId: number) =>
-    apiClient.get(`/devices/${deviceId}/missed-calls/unread-count`),
+    apiClient.get(`/devices/${deviceId}/missed-calls/unread-count`).then(requireApiSuccess),
 };
 
 // Dashboard API functions

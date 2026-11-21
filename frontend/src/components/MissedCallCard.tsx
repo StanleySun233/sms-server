@@ -7,9 +7,10 @@ import { formatDateTime } from '@/lib/dateUtils';
 interface MissedCallCardProps {
   call: MissedCallResponse;
   onMarkAsRead?: (callId: number) => void;
+  marking?: boolean;
 }
 
-export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardProps) {
+export default function MissedCallCard({ call, onMarkAsRead, marking }: MissedCallCardProps) {
   const t = useTranslations('calls');
 
   return (
@@ -57,8 +58,10 @@ export default function MissedCallCard({ call, onMarkAsRead }: MissedCallCardPro
 
         {!call.readAt && onMarkAsRead && (
           <button
+            type="button"
+            disabled={marking}
             onClick={() => onMarkAsRead(call.id)}
-            className="px-3 py-1 rounded-md text-sm transition-all duration-200 hover:opacity-80"
+            className="px-3 py-1 rounded-md text-sm transition-all duration-200 hover:opacity-80 disabled:opacity-60"
             style={{
               backgroundColor: 'rgba(239, 68, 68, 0.3)',
               color: '#fff',

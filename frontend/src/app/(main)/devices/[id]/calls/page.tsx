@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ElMessage } from 'element-plus';
+import Link from 'next/link';
 import { missedCallApi } from '@/lib/api';
 import { MissedCallSummary } from '@/lib/types';
 import { formatDateTime } from '@/lib/dateUtils';
@@ -17,14 +17,22 @@ export default function MissedCallsPage() {
 
   const [calls, setCalls] = useState<MissedCallSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    const load = async () => {
-      const response = await missedCallApi.getMissedCalls(deviceId);
-      setCalls(response.data.data || []);
-    };
-    load().catch((error: any) => ElMessage.error(error.message || t('loadFailed'))).finally(() => setLoading(false));
-  }, [deviceId]);
+    let active = true;
+    void missedCallApi.getMissedCalls(deviceId).then(({ data }) => {
+      if (!active) return;
+      setCalls(data.data ?? []);
+      setLoadError(false);
+    }).catch(() => {
+      if (active) setLoadError(true);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [deviceId, reload]);
 
   if (loading) {
     return (
@@ -51,7 +59,11 @@ export default function MissedCallsPage() {
           </button>
         </div>
 
-        {calls.length === 0 ? (
+        {loadError ? (
+          <p role="alert" className="rounded-lg border border-white/20 p-4 text-amber-100">
+            {t('loadFailed')} <button type="button" className="underline" onClick={() => setReload((value) => value + 1)}>{tCommon('tryAgain')}</button>
+          </p>
+        ) : calls.length === 0 ? (
           <div
             className="rounded-2xl p-8 shadow-xl text-center"
             style={{
@@ -65,15 +77,15 @@ export default function MissedCallsPage() {
         ) : (
           <div className="space-y-4">
             {calls.map((call) => (
-              <div
+              <Link
                 key={call.phone}
-                className="rounded-2xl p-6 shadow-xl cursor-pointer transition-all duration-300 hover:scale-102"
+                className="block rounded-2xl p-4 sm:p-6 shadow-xl transition-colors hover:bg-white/10"
                 style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   backdropFilter: 'blur(16px)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
                 }}
-                onClick={() => router.push(`/devices/${deviceId}/calls/${encodeURIComponent(call.phone)}`)}
+                href={`/devices/${deviceId}/calls/${encodeURIComponent(call.phone)}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -115,7 +127,7 @@ export default function MissedCallsPage() {
                     {t('timesCall', { count: call.count })}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

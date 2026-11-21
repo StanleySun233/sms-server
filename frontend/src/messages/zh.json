@@ -209,6 +209,7 @@
     "exportFailed": "导出失败"
   },
   "calls": {
+    "markReadFailed": "标记已读失败，请重试。",
     "title": "未接来电",
     "backToDevice": "返回设备",
     "noMissedCalls": "暂无未接来电",

@@ -14,10 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -37,32 +34,8 @@ public class MissedCallService {
      * @return List of missed call summaries grouped by phone
      */
     public List<MissedCallSummary> getMissedCallsByPhone(Long deviceId, Long userId) {
-        // Verify device ownership
         verifyDeviceOwnership(deviceId, userId);
-
-        // Get all missed calls for the device, ordered by call time
-        LambdaQueryWrapper<MissedCall> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(MissedCall::getDeviceId, deviceId)
-               .orderByDesc(MissedCall::getCallTime);
-
-        List<MissedCall> calls = missedCallMapper.selectList(wrapper);
-
-        // Group by phone number and aggregate
-        Map<String, MissedCallSummary> summaryMap = new LinkedHashMap<>();
-        for (MissedCall call : calls) {
-            String phone = call.getPhoneNumber();
-            if (!summaryMap.containsKey(phone)) {
-                summaryMap.put(phone, new MissedCallSummary(phone, 0L, call.getCallTime()));
-            }
-            MissedCallSummary summary = summaryMap.get(phone);
-            summary.setCount(summary.getCount() + 1);
-            // Keep the latest call time
-            if (call.getCallTime().isAfter(summary.getLastCallTime())) {
-                summary.setLastCallTime(call.getCallTime());
-            }
-        }
-
-        return new ArrayList<>(summaryMap.values());
+        return missedCallMapper.findSummaries(deviceId);
     }
 
     /**
@@ -80,7 +53,7 @@ public class MissedCallService {
         LambdaQueryWrapper<MissedCall> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(MissedCall::getDeviceId, deviceId)
                .eq(MissedCall::getPhoneNumber, phone)
-               .orderByDesc(MissedCall::getCallTime);
+               .orderByDesc(MissedCall::getCallTime, MissedCall::getId);
 
         List<MissedCall> calls = missedCallMapper.selectList(wrapper);
 

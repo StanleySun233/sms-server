@@ -8,11 +8,13 @@ import { SmsMessage, Conversation } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import ConversationList from '@/components/ConversationList';
 import ExportButton from '@/components/ExportButton';
+import { decodeRouteSegment } from '@/lib/utils';
 
 export default function ConversationPage() {
   const params = useParams<{ id: string; phone: string }>();
-  return <ConversationScreen key={JSON.stringify([params.id, params.phone])}
-    deviceId={Number(params.id)} receiverPhone={params.phone} />;
+  const phone = decodeRouteSegment(params.phone);
+  return <ConversationScreen key={JSON.stringify([params.id, phone])}
+    deviceId={Number(params.id)} receiverPhone={phone} />;
 }
 
 function ConversationScreen({ deviceId, receiverPhone }: { deviceId: number; receiverPhone: string }) {
