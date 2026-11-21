@@ -177,6 +177,7 @@
     "allCaughtUp": "无未读消息"
   },
   "messages": {
+    "currentLine": "当前号码",
     "readLabel": "已读",
     "historicalLine": "这是历史号码的会话。",
     "openCurrentLine": "打开当前号码",

@@ -20,8 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -40,101 +41,43 @@ public class SmsService {
     private final RedisService redisService;
     private final SmsDispatchService dispatchService;
 
-    public List<String> getDeviceLineNumbers(Long deviceId, Long userId) {
-        deviceService.getDevice(deviceId, userId);
-        Set<String> phones = new LinkedHashSet<>();
-        Device device = deviceMapper.selectById(deviceId);
-        if (device != null && device.getCurrentPhoneNumber() != null) {
-            phones.add(device.getCurrentPhoneNumber());
+    public List<LineSummaryResponse> getLineSummaries(Long deviceId, Long userId) {
+        Device device = deviceService.getDevice(deviceId, userId);
+        Map<String, LineSummaryResponse> lines = new LinkedHashMap<>();
+        for (LineSummaryResponse summary : smsMessageMapper.findLineSummaries(deviceId)) {
+            lines.put(summary.getReceiverPhone(), summary);
         }
-        LambdaQueryWrapper<SimChangeLog> logWrapper = new LambdaQueryWrapper<>();
-        logWrapper.eq(SimChangeLog::getDeviceId, deviceId).orderByAsc(SimChangeLog::getChangedAt);
-        List<SimChangeLog> logs = simChangeLogMapper.selectList(logWrapper);
-        for (SimChangeLog log : logs) {
-            if (log.getOldPhoneNumber() != null) phones.add(log.getOldPhoneNumber());
-            if (log.getNewPhoneNumber() != null) phones.add(log.getNewPhoneNumber());
+        addEmptyLine(lines, device.getCurrentPhoneNumber());
+        List<SimChangeLog> changes = simChangeLogMapper.selectList(new LambdaQueryWrapper<SimChangeLog>()
+                .eq(SimChangeLog::getDeviceId, deviceId)
+                .orderByAsc(SimChangeLog::getChangedAt));
+        for (SimChangeLog change : changes) {
+            addEmptyLine(lines, change.getOldPhoneNumber());
+            addEmptyLine(lines, change.getNewPhoneNumber());
         }
-        return new ArrayList<>(phones);
+        String currentNumber = device.getCurrentPhoneNumber();
+        if (isNamedLine(currentNumber)) lines.get(currentNumber).setCurrentLine(true);
+
+        return lines.values().stream()
+                .sorted(Comparator.comparing(LineSummaryResponse::isCurrentLine).reversed()
+                        .thenComparing(LineSummaryResponse::getLastMessageTime,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(LineSummaryResponse::getReceiverPhone))
+                .toList();
     }
 
-    public List<LineSummaryResponse> getLineSummaries(Long deviceId, Long userId) {
-        List<String> lineNumbers = getDeviceLineNumbers(deviceId, userId);
-        List<LineSummaryResponse> result = new ArrayList<>();
-        for (String receiverPhone : lineNumbers) {
+    private void addEmptyLine(Map<String, LineSummaryResponse> lines, String phone) {
+        if (!isNamedLine(phone)) return;
+        lines.computeIfAbsent(phone, number -> {
             LineSummaryResponse summary = new LineSummaryResponse();
-            summary.setReceiverPhone(receiverPhone);
-            LambdaQueryWrapper<SmsMessage> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SmsMessage::getDeviceId, deviceId)
-                    .eq(SmsMessage::getReceiverPhone, receiverPhone)
-                    .orderByDesc(SmsMessage::getCreatedAt)
-                    .last("LIMIT 1");
-            SmsMessage last = smsMessageMapper.selectOne(wrapper);
-            if (last != null) {
-                summary.setLastMessage(last.getContent());
-                summary.setLastMessageDirection(last.getDirection());
-                summary.setLastMessageTime(last.getCreatedAt());
-                LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
-                unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                        .eq(SmsMessage::getReceiverPhone, receiverPhone)
-                        .eq(SmsMessage::getDirection, "received")
-                        .isNull(SmsMessage::getReadAt);
-                summary.setUnreadCount(smsMessageMapper.selectCount(unreadWrapper).intValue());
-            } else {
-                summary.setLastMessage(null);
-                summary.setLastMessageTime(null);
-                summary.setUnreadCount(0);
-            }
-            result.add(summary);
-        }
-        LambdaQueryWrapper<SmsMessage> nullReceiverWrapper = new LambdaQueryWrapper<>();
-        nullReceiverWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                .and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""))
-                .orderByDesc(SmsMessage::getCreatedAt)
-                .last("LIMIT 1");
-        SmsMessage unknownLast = smsMessageMapper.selectOne(nullReceiverWrapper);
-        if (unknownLast != null) {
-            LineSummaryResponse unknownSummary = new LineSummaryResponse();
-            unknownSummary.setReceiverPhone(UNKNOWN_RECEIVER);
-            unknownSummary.setLastMessage(unknownLast.getContent());
-            unknownSummary.setLastMessageDirection(unknownLast.getDirection());
-            unknownSummary.setLastMessageTime(unknownLast.getCreatedAt());
-            LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
-            unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                    .and(w -> w.isNull(SmsMessage::getReceiverPhone).or().eq(SmsMessage::getReceiverPhone, ""))
-                    .eq(SmsMessage::getDirection, "received")
-                    .isNull(SmsMessage::getReadAt);
-            unknownSummary.setUnreadCount(smsMessageMapper.selectCount(unreadWrapper).intValue());
-            result.add(unknownSummary);
-        }
-        LambdaQueryWrapper<SmsMessage> noneReceiverWrapper = new LambdaQueryWrapper<>();
-        noneReceiverWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                .eq(SmsMessage::getReceiverPhone, "none")
-                .orderByDesc(SmsMessage::getCreatedAt)
-                .last("LIMIT 1");
-        SmsMessage noneLast = smsMessageMapper.selectOne(noneReceiverWrapper);
-        if (noneLast != null) {
-            LineSummaryResponse noneSummary = new LineSummaryResponse();
-            noneSummary.setReceiverPhone("none");
-            noneSummary.setLastMessage(noneLast.getContent());
-            noneSummary.setLastMessageDirection(noneLast.getDirection());
-            noneSummary.setLastMessageTime(noneLast.getCreatedAt());
-            LambdaQueryWrapper<SmsMessage> unreadWrapper = new LambdaQueryWrapper<>();
-            unreadWrapper.eq(SmsMessage::getDeviceId, deviceId)
-                    .eq(SmsMessage::getReceiverPhone, "none")
-                    .eq(SmsMessage::getDirection, "received")
-                    .isNull(SmsMessage::getReadAt);
-            noneSummary.setUnreadCount(smsMessageMapper.selectCount(unreadWrapper).intValue());
-            result.add(noneSummary);
-        }
-        result.sort((a, b) -> {
-            LocalDateTime ta = a.getLastMessageTime();
-            LocalDateTime tb = b.getLastMessageTime();
-            if (ta == null && tb == null) return 0;
-            if (ta == null) return 1;
-            if (tb == null) return -1;
-            return tb.compareTo(ta);
+            summary.setReceiverPhone(number);
+            summary.setUnreadCount(0);
+            return summary;
         });
-        return result;
+    }
+
+    private boolean isNamedLine(String phone) {
+        return phone != null && !phone.isBlank() && !UNKNOWN_RECEIVER.equals(phone) && !"none".equals(phone);
     }
 
     public List<ConversationResponse> getConversations(Long deviceId, Long userId) {

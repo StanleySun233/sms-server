@@ -177,6 +177,7 @@
     "allCaughtUp": "No unread messages"
   },
   "messages": {
+    "currentLine": "Current number",
     "readLabel": "Read",
     "historicalLine": "This conversation belongs to a previous number.",
     "openCurrentLine": "Open current number",

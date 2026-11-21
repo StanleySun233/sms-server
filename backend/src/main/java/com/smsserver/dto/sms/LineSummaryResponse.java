@@ -11,4 +11,5 @@ public class LineSummaryResponse {
     private String lastMessageDirection;
     private Integer unreadCount;
     private LocalDateTime lastMessageTime;
+    private boolean currentLine;
 }

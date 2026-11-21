@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { smsApi } from '@/lib/api';
@@ -9,11 +9,14 @@ import { LineSummary } from '@/lib/types';
 import { formatDateTime } from '@/lib/dateUtils';
 
 export default function MessagesPage() {
+  const params = useParams<{ id: string }>();
+  return <MessageLinesScreen key={params.id} deviceId={Number(params.id)} />;
+}
+
+function MessageLinesScreen({ deviceId }: { deviceId: number }) {
   const t = useTranslations('messages');
   const tCommon = useTranslations('common');
-  const router = useRouter();
-  const params = useParams();
-  const deviceId = parseInt(params.id as string);
+  const tDevices = useTranslations('devices');
 
   const [lines, setLines] = useState<LineSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,18 +73,16 @@ export default function MessagesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">{t('title')}</h1>
-          <button
-            onClick={() => router.push(`/devices/${deviceId}`)}
-            className="px-4 py-2 rounded-lg transition-all duration-200"
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              color: '#fff',
-            }}
-          >
-            {t('backToDevice')}
-          </button>
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">{t('title')}</h1>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/devices/${deviceId}`} className="px-3 py-2 rounded-lg bg-white/10 text-white">
+              {t('backToDevice')}
+            </Link>
+            <Link href={`/devices/${deviceId}/send`} className="px-3 py-2 rounded-lg bg-[#c2905e]/30 text-white">
+              {tDevices('sendSms')}
+            </Link>
+          </div>
         </div>
 
         {loadFailed && <p role="alert" className="mb-4 text-amber-200">
@@ -125,9 +126,10 @@ export default function MessagesPage() {
                     }}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-white">
-                        {lineDisplayLabel(line.receiverPhone)}
-                      </span>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="font-medium text-white">{lineDisplayLabel(line.receiverPhone)}</span>
+                        {line.currentLine && <span className="rounded bg-emerald-400/20 px-2 py-0.5 text-xs text-emerald-200">{t('currentLine')}</span>}
+                      </div>
                       {line.unreadCount > 0 && (
                         <span
                           className="px-2 py-1 rounded-full text-xs font-bold text-white"

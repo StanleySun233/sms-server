@@ -165,14 +165,7 @@ class SmsServerApplicationTests {
     @Test
     void transferPreservesDeviceIdentityAndBlocksEditsByThePreviousOwner() {
         jdbc.execute("CREATE TABLE users (id BIGINT PRIMARY KEY, username VARCHAR(50), email VARCHAR(100), password_hash VARCHAR(100), created_at TIMESTAMP)");
-        jdbc.execute("""
-                CREATE TABLE devices (
-                    id BIGINT PRIMARY KEY, user_id BIGINT, alias VARCHAR(100), webhook_token VARCHAR(16),
-                    current_phone_number VARCHAR(20), current_sim_id VARCHAR(32), sms_protocol INT,
-                    imei VARCHAR(20), signal_strength INT, last_heartbeat_at TIMESTAMP,
-                    latitude DECIMAL(10,7), longitude DECIMAL(11,7), created_at TIMESTAMP
-                )
-                """);
+        createDeviceTable();
         try {
             jdbc.update("INSERT INTO users (id,username) VALUES (1,'owner'),(2,'recipient')");
             jdbc.update("INSERT INTO devices (id,user_id,alias,webhook_token,current_sim_id,sms_protocol) VALUES (1,1,'old','tokenfixture0001','sim-fixture',2)");
@@ -190,5 +183,56 @@ class SmsServerApplicationTests {
             jdbc.execute("DROP TABLE devices");
             jdbc.execute("DROP TABLE users");
         }
+    }
+
+    @Test
+    void lineSummariesKeepCurrentNumberFirstAndRecoverLinesKnownOnlyByMessages() {
+        createDeviceTable();
+        jdbc.execute("""
+                CREATE TABLE sms_message (
+                    id BIGINT PRIMARY KEY, device_id BIGINT, receiver_phone VARCHAR(20),
+                    phone_number VARCHAR(20), content VARCHAR(200), direction VARCHAR(12),
+                    created_at TIMESTAMP, read_at TIMESTAMP
+                )
+                """);
+        jdbc.execute("""
+                CREATE TABLE sim_change_log (
+                    id BIGINT PRIMARY KEY, device_id BIGINT, old_phone_number VARCHAR(20),
+                    new_phone_number VARCHAR(20), changed_at TIMESTAMP
+                )
+                """);
+        try {
+            jdbc.update("INSERT INTO devices (id,user_id,current_phone_number) VALUES (1,10,'+10000')");
+            jdbc.update("INSERT INTO sim_change_log VALUES (1,1,'10005','+10000','2026-11-21 15:00:00')");
+            jdbc.update("""
+                    INSERT INTO sms_message VALUES
+                    (1,1,'10002','10001','received offline','received','2026-11-21 13:00:00',NULL),
+                    (2,1,NULL,'10001','unidentified SIM','received','2026-11-21 12:00:00',NULL),
+                    (3,1,'','10001','older unidentified SIM','received','2026-11-21 11:00:00',NULL),
+                    (4,2,'10009','10001','different device','received','2026-11-21 16:00:00',NULL)
+                    """);
+            var lines = sms.getLineSummaries(1L, 10L);
+            assertEquals(List.of("+10000", "10002", "__unknown__", "10005"),
+                    lines.stream().map(line -> line.getReceiverPhone()).toList());
+            assertTrue(lines.get(0).isCurrentLine());
+            assertEquals(0, lines.get(0).getUnreadCount());
+            assertEquals("received offline", lines.get(1).getLastMessage());
+            assertEquals(2, lines.get(2).getUnreadCount());
+        } finally {
+            jdbc.execute("DROP TABLE sim_change_log");
+            jdbc.execute("DROP TABLE sms_message");
+            jdbc.execute("DROP TABLE devices");
+        }
+    }
+
+    private void createDeviceTable() {
+        jdbc.execute("""
+                CREATE TABLE devices (
+                    id BIGINT PRIMARY KEY, user_id BIGINT, alias VARCHAR(100), webhook_token VARCHAR(16),
+                    current_phone_number VARCHAR(20), current_sim_id VARCHAR(32), sms_protocol INT,
+                    imei VARCHAR(20), signal_strength INT, last_heartbeat_at TIMESTAMP,
+                    latitude DECIMAL(10,7), longitude DECIMAL(11,7), created_at TIMESTAMP
+                )
+                """);
     }
 }

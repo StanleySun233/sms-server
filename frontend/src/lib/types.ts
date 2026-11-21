@@ -90,6 +90,7 @@ export interface SmsMessage {
 }
 
 export interface LineSummary {
+  currentLine?: boolean;
   receiverPhone: string;
   lastMessage: string | null;
   lastMessageDirection?: 'sent' | 'received';
