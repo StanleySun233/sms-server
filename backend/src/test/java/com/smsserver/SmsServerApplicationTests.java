@@ -177,7 +177,7 @@ class SmsServerApplicationTests {
             jdbc.update("INSERT INTO users (id,username) VALUES (1,'owner'),(2,'recipient')");
             jdbc.update("INSERT INTO devices (id,user_id,alias,webhook_token,current_sim_id,sms_protocol) VALUES (1,1,'old','tokenfixture0001','sim-fixture',2)");
             var edit = new UpdateDeviceRequest();
-            edit.setAlias("renamed");
+            edit.setAlias("  renamed  ");
             devices.updateDevice(1L, 1L, edit);
             devices.transferDevice(1L, 1L, "recipient");
             assertThrows(RuntimeException.class, () -> devices.updateDevice(1L, 1L, edit));

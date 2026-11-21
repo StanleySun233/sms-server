@@ -17,6 +17,9 @@ type SendLogItem = {
   deliveredAt: string | null;
   createdAt: string;
   updatedAt: string;
+  attemptCount?: number;
+  attemptOfferCount?: number;
+  attemptExpiresAt?: string | null;
 };
 
 export default function DeviceSendPage() {
@@ -39,17 +42,24 @@ function DeviceSendScreen({ deviceId }: { deviceId: number }) {
   const [sendReady, setSendReady] = useState<boolean>();
   const [readinessError, setReadinessError] = useState(false);
   const draft = useRef<SmsDraft | null>(null);
+  const logsRequest = useRef(0);
   const validPhone = /^\+?[0-9]{5,19}$/.test(sendPhone.trim());
 
   const fetchSendLogs = useCallback(() => {
-    smsApi.getSendLogs(deviceId, 20)
+    const request = ++logsRequest.current;
+    return smsApi.getSendLogs(deviceId, 20)
       .then((res) => {
+        if (request !== logsRequest.current) return;
         const data = (res.data as { data?: SendLogItem[] })?.data;
         setSendLogs(Array.isArray(data) ? data : []);
         setLogsError(false);
       })
-      .catch(() => setLogsError(true))
-      .finally(() => setLogsLoading(false));
+      .catch(() => {
+        if (request === logsRequest.current) setLogsError(true);
+      })
+      .finally(() => {
+        if (request === logsRequest.current) setLogsLoading(false);
+      });
   }, [deviceId]);
 
   useEffect(() => {
@@ -204,7 +214,7 @@ function DeviceSendScreen({ deviceId }: { deviceId: number }) {
           {logsLoading ? (
             <p className="text-white/60">{tCommon('loading')}</p>
           ) : sendLogs.length === 0 ? (
-            <p className="text-white/60">{t('noSendLogs')}</p>
+            !logsError && <p className="text-white/60">{t('noSendLogs')}</p>
           ) : (
             <ul className="space-y-3">
               {sendLogs.map((log) => (
@@ -216,7 +226,7 @@ function DeviceSendScreen({ deviceId }: { deviceId: number }) {
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  <div className="flex justify-between items-start gap-4">
+                  <div className="flex flex-wrap justify-between items-start gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-white">{log.phoneNumber}</div>
                       <div className="mt-1 text-white/70 text-sm line-clamp-2">{log.content}</div>
@@ -225,15 +235,28 @@ function DeviceSendScreen({ deviceId }: { deviceId: number }) {
                       </div>
                     </div>
                     <span
-                      className="shrink-0 px-2 py-1 rounded text-xs font-medium"
-                      style={{
-                        backgroundColor: log.status === 'pending' ? 'rgba(255,193,7,0.2)' : log.status === 'sent' || log.status === 'delivered' ? 'rgba(76,175,80,0.2)' : log.status === 'failed' ? 'rgba(244,67,54,0.2)' : 'rgba(255,255,255,0.1)',
-                        color: log.status === 'pending' ? '#ffc107' : log.status === 'sent' || log.status === 'delivered' ? '#4caf50' : log.status === 'failed' ? '#f44336' : '#fff',
-                      }}
+                      className={`shrink-0 px-2 py-1 rounded text-xs font-medium ${
+                        ['pending', 'dispatching', 'unknown', 'sent'].includes(log.status)
+                          ? 'bg-amber-400/20 text-amber-200'
+                          : ['submitted', 'delivered'].includes(log.status)
+                            ? 'bg-emerald-400/20 text-emerald-200'
+                            : 'bg-white/10 text-rose-200'
+                      }`}
                     >
                       {statusKey[log.status] ?? log.status}
                     </span>
                   </div>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/70">
+                    <span>{t('smsTaskId', { id: log.id })}</span>
+                    {log.status === 'submitted' && log.sentAt && <span>{t('smsDeviceConfirmedAt', { time: formatTime(log.sentAt) })}</span>}
+                    {(log.status === 'pending' || log.status === 'dispatching') && log.attemptExpiresAt &&
+                      <span>{t('smsDeadline', { time: formatTime(log.attemptExpiresAt) })}</span>}
+                    {(log.status === 'failed' || log.status === 'expired') && log.attemptCount != null &&
+                      <span>{t('smsAttemptCount', { count: log.attemptCount })}</span>}
+                    {log.status === 'dispatching' && log.attemptOfferCount != null &&
+                      <span>{t('smsOfferCount', { count: log.attemptOfferCount })}</span>}
+                  </div>
+                  {(log.status === 'unknown' || log.status === 'sent') && <p className="mt-2 text-xs text-amber-200">{t('smsUnconfirmedHint')}</p>}
                 </li>
               ))}
             </ul>

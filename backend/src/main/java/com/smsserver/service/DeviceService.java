@@ -84,7 +84,7 @@ public class DeviceService {
     public Device createDevice(Long userId, CreateDeviceRequest request) {
         Device device = new Device();
         device.setUserId(userId);
-        device.setAlias(request.getAlias());
+        device.setAlias(request.getAlias().trim());
         device.setWebhookToken(generateWebhookToken());
 
         deviceMapper.insert(device);
@@ -135,11 +135,13 @@ public class DeviceService {
     @Transactional
     public Device updateDevice(Long id, Long userId, UpdateDeviceRequest request) {
         Device device = getDeviceForUpdate(id, userId);
-        device.setAlias(request.getAlias());
+        String alias = request.getAlias().trim();
+        if (alias.equals(device.getAlias())) return device;
+        device.setAlias(alias);
         deviceMapper.update(null, new LambdaUpdateWrapper<Device>()
                 .eq(Device::getId, id)
-                .set(Device::getAlias, request.getAlias()));
-        log.info("Updated device {} alias to {}", id, request.getAlias());
+                .set(Device::getAlias, alias));
+        log.info("Updated alias for device {}", id);
         return device;
     }
 

@@ -7,11 +7,14 @@ import { deviceApi } from '@/lib/api';
 import { Device } from '@/lib/types';
 
 export default function EditDevicePage() {
+  const params = useParams<{ id: string }>();
+  return <EditDeviceScreen key={params.id} deviceId={Number(params.id)} />;
+}
+
+function EditDeviceScreen({ deviceId }: { deviceId: number }) {
   const t = useTranslations('devices');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const params = useParams();
-  const deviceId = parseInt(params.id as string);
 
   const [device, setDevice] = useState<Device | null>(null);
   const [alias, setAlias] = useState('');
@@ -19,30 +22,40 @@ export default function EditDevicePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    deviceApi.get(deviceId).then((response) => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    void deviceApi.get(deviceId).then((response) => {
+      if (!active) return;
       setDevice(response.data);
       setAlias(response.data.alias);
-    }).catch((error: any) => {
-      setError(error.message || t('loadFailed'));
-      setTimeout(() => router.push('/devices'), 2000);
-    }).finally(() => setLoading(false));
-  }, [deviceId, router]);
+    }).catch(() => {
+      if (active) setDevice(null);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [deviceId, reload]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const name = alias.trim();
+    if (!device || saving || name === device.alias) return;
     setError('');
     setSuccess('');
-    if (!alias.trim()) {
+    if (!name) {
       setError(t('nameRequired'));
       return;
     }
     setSaving(true);
-    deviceApi.update(deviceId, { alias }).then(() => {
+    deviceApi.update(deviceId, { alias: name }).then(({ data }) => {
+      setDevice(data);
+      setAlias(data.alias);
       setSuccess(t('updateSuccess'));
-      setTimeout(() => router.push('/devices'), 1500);
-    }).catch((err: any) => setError(err.message || t('updateFailed'))).finally(() => setSaving(false));
+    }).catch(() => setError(t('updateFailed'))).finally(() => setSaving(false));
   };
 
   if (loading) {
@@ -51,6 +64,12 @@ export default function EditDevicePage() {
         <div className="text-white text-xl">{tCommon('loading')}</div>
       </div>
     );
+  }
+
+  if (!device) {
+    return <p role="alert" className="mx-auto mt-8 max-w-2xl p-4 text-amber-200">
+      {t('loadFailed')} <button type="button" className="underline" onClick={() => setReload((value) => value + 1)}>{tCommon('tryAgain')}</button>
+    </p>;
   }
 
   return (
@@ -68,22 +87,25 @@ export default function EditDevicePage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
-              <p className="text-red-200">{error}</p>
+              <p role="alert" className="text-red-200">{error}</p>
             </div>
           )}
 
           {success && (
             <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4">
-              <p className="text-green-200">{success}</p>
+              <p role="status" className="text-green-200">{success}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-white/90 mb-2">{t('deviceName')}</label>
+            <label htmlFor="edit-device-alias" className="block text-white/90 mb-2">{t('deviceName')}</label>
             <input
+              id="edit-device-alias"
               type="text"
+              required
+              disabled={saving}
               value={alias}
-              onChange={(e) => setAlias(e.target.value)}
+              onChange={(e) => { setAlias(e.target.value); setError(''); setSuccess(''); }}
               placeholder={t('placeholderDeviceName')}
               maxLength={100}
               className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-[#c2905e] transition-colors"
@@ -96,7 +118,7 @@ export default function EditDevicePage() {
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !alias.trim() || alias.trim() === device.alias}
               className="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
               style={{
                 backgroundColor: '#c2905e',
@@ -107,14 +129,14 @@ export default function EditDevicePage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push('/devices')}
+              onClick={() => router.push(`/devices/${deviceId}`)}
               className="px-6 py-3 rounded-lg font-medium transition-all duration-200"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 color: '#fff',
               }}
             >
-              {tCommon('cancel')}
+              {t('backToDevice')}
             </button>
           </div>
         </form>

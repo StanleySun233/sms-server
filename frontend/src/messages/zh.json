@@ -70,6 +70,12 @@
     "myDevices": "我的设备（{count}）"
   },
   "devices": {
+    "smsTaskId": "任务 #{id}",
+    "smsDeviceConfirmedAt": "模块确认发送于 {time}",
+    "smsDeadline": "等待截止时间 {time}",
+    "smsAttemptCount": "发送尝试 {count} 次",
+    "smsOfferCount": "向设备下发 {count} 次",
+    "smsUnconfirmedHint": "没有收到设备确认。该任务不会自动重发。",
     "loadSendLogsFailed": "暂时无法加载发送记录。",
     "firstHeartbeatWaiting": "等待设备首次上报。写入 Webhook 地址并启动设备后，此处会自动更新。",
     "firstHeartbeatCheckFailed": "暂时无法检查设备状态，稍后会自动重试。",

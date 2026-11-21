@@ -70,6 +70,12 @@
     "myDevices": "Your Devices ({count})"
   },
   "devices": {
+    "smsTaskId": "Task #{id}",
+    "smsDeviceConfirmedAt": "Module confirmed send at {time}",
+    "smsDeadline": "Waiting until {time}",
+    "smsAttemptCount": "Send attempts: {count}",
+    "smsOfferCount": "Offers to device: {count}",
+    "smsUnconfirmedHint": "The device did not confirm the send. This task will not retry automatically.",
     "loadSendLogsFailed": "Could not load send history.",
     "firstHeartbeatWaiting": "Waiting for the first report. Set the webhook URL and start the device. This page updates automatically.",
     "firstHeartbeatCheckFailed": "Could not check the device. Retrying shortly.",
