@@ -15,10 +15,8 @@ spring:
       host: localhost
       port: 6379
 
-# Tests exercise application behavior without host CPU metrics.
-spring.autoconfigure.exclude:
-  - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-  - org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration
+# Disable security for tests
+spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
 
 # MyBatis-Plus configuration for tests
 mybatis-plus:

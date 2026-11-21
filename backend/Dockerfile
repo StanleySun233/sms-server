@@ -18,8 +18,8 @@ RUN mvn dependency:go-offline -B
 # Copy source code
 COPY src ./src
 
-# Build application
-RUN mvn clean package -B
+# Run tests without the Java 18 cgroup probe in the BuildKit sandbox.
+RUN mvn clean package -B -DargLine=-XX:-UseContainerSupport
 
 # Production stage
 FROM eclipse-temurin:18-jre

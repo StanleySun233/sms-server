@@ -11,11 +11,14 @@ import StatusIndicator from '@/components/StatusIndicator';
 import CopyButton from '@/components/CopyButton';
 
 export default function DeviceDetailPage() {
+  const params = useParams<{ id: string }>();
+  return <DeviceDetailScreen key={params.id} deviceId={Number(params.id)} />;
+}
+
+function DeviceDetailScreen({ deviceId }: { deviceId: number }) {
   const t = useTranslations('devices');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const params = useParams();
-  const deviceId = parseInt(params.id as string);
 
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
