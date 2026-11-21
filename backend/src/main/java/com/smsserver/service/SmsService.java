@@ -183,11 +183,7 @@ public class SmsService {
 
     @Transactional
     public SmsMessage sendMessage(Long deviceId, String phone, String content, String requestId, Long userId) {
-        Device device = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
-                .eq(Device::getId, deviceId)
-                .eq(Device::getUserId, userId)
-                .last("FOR UPDATE"));
-        if (device == null) throw new IllegalArgumentException("Device not found");
+        Device device = deviceService.getDeviceForUpdate(deviceId, userId);
         if (requestId != null) {
             PendingSms existing = pendingSmsMapper.selectOne(new LambdaQueryWrapper<PendingSms>()
                     .eq(PendingSms::getDeviceId, deviceId)
@@ -243,7 +239,7 @@ public class SmsService {
 
     @Transactional
     public SmsMessage retryMessage(Long deviceId, Long messageId, Long userId) {
-        Device device = deviceService.getDevice(deviceId, userId);
+        Device device = deviceService.getDeviceForUpdate(deviceId, userId);
         SmsMessage message = smsMessageMapper.selectById(messageId);
         if (message == null || !message.getDeviceId().equals(deviceId) || message.getPendingSmsId() == null) {
             throw new RuntimeException("Message not found or not retryable");

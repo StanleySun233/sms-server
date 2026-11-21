@@ -5,6 +5,8 @@ import com.smsserver.mapper.MissedCallMapper;
 import com.smsserver.service.RedisService;
 import com.smsserver.service.SmsService;
 import com.smsserver.service.AuthService;
+import com.smsserver.service.DeviceService;
+import com.smsserver.dto.device.UpdateDeviceRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +35,8 @@ class SmsServerApplicationTests {
     private SmsService sms;
     @Autowired
     private AuthService auth;
+    @Autowired
+    private DeviceService devices;
     @Autowired
     private BCryptPasswordEncoder passwords;
     @MockBean
@@ -154,6 +158,36 @@ class SmsServerApplicationTests {
             assertThrows(IllegalArgumentException.class,
                     () -> auth.changePassword(1L, "starting-test-password", "another-test-password"));
         } finally {
+            jdbc.execute("DROP TABLE users");
+        }
+    }
+
+    @Test
+    void transferPreservesDeviceIdentityAndBlocksEditsByThePreviousOwner() {
+        jdbc.execute("CREATE TABLE users (id BIGINT PRIMARY KEY, username VARCHAR(50), email VARCHAR(100), password_hash VARCHAR(100), created_at TIMESTAMP)");
+        jdbc.execute("""
+                CREATE TABLE devices (
+                    id BIGINT PRIMARY KEY, user_id BIGINT, alias VARCHAR(100), webhook_token VARCHAR(16),
+                    current_phone_number VARCHAR(20), current_sim_id VARCHAR(32), sms_protocol INT,
+                    imei VARCHAR(20), signal_strength INT, last_heartbeat_at TIMESTAMP,
+                    latitude DECIMAL(10,7), longitude DECIMAL(11,7), created_at TIMESTAMP
+                )
+                """);
+        try {
+            jdbc.update("INSERT INTO users (id,username) VALUES (1,'owner'),(2,'recipient')");
+            jdbc.update("INSERT INTO devices (id,user_id,alias,webhook_token,current_sim_id,sms_protocol) VALUES (1,1,'old','tokenfixture0001','sim-fixture',2)");
+            var edit = new UpdateDeviceRequest();
+            edit.setAlias("renamed");
+            devices.updateDevice(1L, 1L, edit);
+            devices.transferDevice(1L, 1L, "recipient");
+            assertThrows(RuntimeException.class, () -> devices.updateDevice(1L, 1L, edit));
+            var transferred = devices.getDevice(1L, 2L);
+            assertEquals("renamed", transferred.getAlias());
+            assertEquals("tokenfixture0001", transferred.getWebhookToken());
+            assertEquals("sim-fixture", transferred.getCurrentSimId());
+            assertEquals(2, transferred.getSmsProtocol());
+        } finally {
+            jdbc.execute("DROP TABLE devices");
             jdbc.execute("DROP TABLE users");
         }
     }

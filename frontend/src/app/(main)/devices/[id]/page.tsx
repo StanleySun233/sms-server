@@ -26,6 +26,7 @@ export default function DeviceDetailPage() {
   const [transferConfirmTarget, setTransferConfirmTarget] = useState<string | null>(null);
   const [transferChecking, setTransferChecking] = useState(false);
   const [transferSubmitting, setTransferSubmitting] = useState(false);
+  const [transferError, setTransferError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -72,36 +73,41 @@ export default function DeviceDetailPage() {
   const openTransferDialog = () => {
     setTransferUsername('');
     setTransferConfirmTarget(null);
+    setTransferError('');
     setTransferOpen(true);
   };
 
   const handleCheckUsername = async () => {
+    if (transferChecking) return;
     const username = transferUsername.trim();
     if (!username) {
-      ElMessage.warning(t('enterUsername'));
+      setTransferError(t('enterUsername'));
       return;
     }
     setTransferChecking(true);
+    setTransferError('');
     setTransferConfirmTarget(null);
     const res = await deviceApi.checkTransferUsername(username).then((r) => r.data).catch((err: any) => {
       const raw = err?.message ?? '';
       const msg = raw.includes('transfer to self') ? t('cannotTransferToSelf') : (raw || t('userNotFound'));
-      ElMessage.error(msg);
+      setTransferError(msg);
       return null;
     }).finally(() => setTransferChecking(false));
     if (res && res.exists && res.username) setTransferConfirmTarget(res.username);
+    else if (res) setTransferError(t('userNotFound'));
   };
 
   const handleTransferConfirm = async () => {
-    const username = transferConfirmTarget || transferUsername.trim();
-    if (!username) return;
+    const username = transferConfirmTarget;
+    if (!username || transferSubmitting) return;
     setTransferSubmitting(true);
+    setTransferError('');
     await deviceApi.transfer(deviceId, username).then(() => {
       ElMessage.success(t('transferSuccess'));
       setTransferOpen(false);
       router.push('/devices');
     }).catch((err: any) => {
-      ElMessage.error(err.message || t('userNotFound'));
+      setTransferError(err.message || t('userNotFound'));
     }).finally(() => setTransferSubmitting(false));
   };
 
@@ -383,18 +389,23 @@ export default function DeviceDetailPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-semibold text-white mb-4">{t('transferDevice')}</h3>
+              {transferError && <p role="alert" className="mb-3 text-amber-200">{transferError}</p>}
               {transferConfirmTarget == null ? (
-                <>
+                <form onSubmit={(event) => { event.preventDefault(); void handleCheckUsername(); }}>
                   <input
                     type="text"
+                    aria-label={t('enterUsername')}
+                    disabled={transferChecking}
                     value={transferUsername}
-                    onChange={(e) => setTransferUsername(e.target.value)}
+                    onChange={(e) => { setTransferUsername(e.target.value); setTransferError(''); }}
                     placeholder={t('enterUsername')}
                     className="w-full px-4 py-3 rounded-lg mb-4 text-white placeholder-white/50"
                     style={{ backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
                   />
                   <div className="flex gap-3 justify-end">
                     <button
+                      type="button"
+                      disabled={transferChecking}
                       onClick={() => setTransferOpen(false)}
                       className="px-4 py-2 rounded-lg text-white/80"
                       style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
@@ -402,22 +413,22 @@ export default function DeviceDetailPage() {
                       {tCommon('cancel')}
                     </button>
                     <button
-                      onClick={handleCheckUsername}
-                      disabled={transferChecking}
+                      type="submit"
+                      disabled={transferChecking || !transferUsername.trim()}
                       className="px-4 py-2 rounded-lg font-medium text-white"
                       style={{ backgroundColor: '#60a5fa' }}
                     >
                       {transferChecking ? '...' : t('checkUsername')}
                     </button>
                   </div>
-                </>
+                </form>
               ) : (
                 <>
                   <p className="text-white/90 mb-2">{t('confirmTransfer', { username: transferConfirmTarget })}</p>
                   <p className="text-white/60 text-sm mb-6">{t('transferHint')}</p>
                   <div className="flex gap-3 justify-end">
                     <button
-                      onClick={() => setTransferConfirmTarget(null)}
+                      onClick={() => { setTransferConfirmTarget(null); setTransferError(''); }}
                       disabled={transferSubmitting}
                       className="px-4 py-2 rounded-lg text-white/80"
                       style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}

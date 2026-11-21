@@ -1,6 +1,7 @@
 package com.smsserver.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smsserver.dto.device.CheckUsernameResponse;
 import com.smsserver.dto.device.CreateDeviceRequest;
 import com.smsserver.dto.device.UpdateDeviceRequest;
@@ -105,7 +106,17 @@ public class DeviceService {
      * Get a single device by ID
      */
     public Device getDevice(Long id, Long userId) {
-        Device device = deviceMapper.selectById(id);
+        return requireOwner(deviceMapper.selectById(id), userId);
+    }
+
+    Device getDeviceForUpdate(Long id, Long userId) {
+        Device device = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
+                .eq(Device::getId, id)
+                .last("FOR UPDATE"));
+        return requireOwner(device, userId);
+    }
+
+    private Device requireOwner(Device device, Long userId) {
         if (device == null) {
             throw new RuntimeException("Device not found");
         }
@@ -123,9 +134,11 @@ public class DeviceService {
      */
     @Transactional
     public Device updateDevice(Long id, Long userId, UpdateDeviceRequest request) {
-        Device device = getDevice(id, userId);
+        Device device = getDeviceForUpdate(id, userId);
         device.setAlias(request.getAlias());
-        deviceMapper.updateById(device);
+        deviceMapper.update(null, new LambdaUpdateWrapper<Device>()
+                .eq(Device::getId, id)
+                .set(Device::getAlias, request.getAlias()));
         log.info("Updated device {} alias to {}", id, request.getAlias());
         return device;
     }
@@ -135,12 +148,12 @@ public class DeviceService {
      */
     @Transactional
     public void deleteDevice(Long id, Long userId) {
-        Device device = getDevice(id, userId);
+        getDeviceForUpdate(id, userId);
 
         // Cascade delete related records
+        deviceMapper.deletePendingSmsByDeviceId(id);
         deviceMapper.deleteSmsMessagesByDeviceId(id);
         deviceMapper.deleteMissedCallsByDeviceId(id);
-        deviceMapper.deletePendingSmsByDeviceId(id);
         deviceMapper.deleteSimChangeLogsByDeviceId(id);
 
         // Delete device
@@ -174,7 +187,7 @@ public class DeviceService {
 
     @Transactional
     public Device transferDevice(Long deviceId, Long currentUserId, String username) {
-        Device device = getDevice(deviceId, currentUserId);
+        Device device = getDeviceForUpdate(deviceId, currentUserId);
         if (username == null || username.isBlank()) {
             throw new RuntimeException("Username is required");
         }
@@ -187,7 +200,9 @@ public class DeviceService {
             throw new RuntimeException("Cannot transfer to self");
         }
         device.setUserId(target.getId());
-        deviceMapper.updateById(device);
+        deviceMapper.update(null, new LambdaUpdateWrapper<Device>()
+                .eq(Device::getId, deviceId)
+                .set(Device::getUserId, target.getId()));
         log.info("Transferred device {} from user {} to user {}", deviceId, currentUserId, target.getId());
         return device;
     }
