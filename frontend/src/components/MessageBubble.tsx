@@ -2,6 +2,18 @@
 
 import { SmsMessage } from '@/lib/types';
 import { formatDateTime } from '@/lib/dateUtils';
+import { useTranslations } from 'next-intl';
+
+const statusLabels = {
+  pending: 'statusPending',
+  sent: 'statusSent',
+  delivered: 'statusDelivered',
+  failed: 'statusFailed',
+  dispatching: 'statusDispatching',
+  submitted: 'statusSubmitted',
+  unknown: 'statusUnknown',
+  expired: 'statusExpired',
+} as const;
 
 interface MessageBubbleProps {
   message: SmsMessage;
@@ -10,28 +22,13 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, deviceId, onRetry }: MessageBubbleProps) {
+  const t = useTranslations('devices');
   const isSent = message.direction === 'sent';
   const status = message.status || 'pending';
-  const showDot = isSent;
-  const dotColor =
-    status === 'failed'
-      ? 'bg-red-500'
-      : status === 'pending'
-        ? 'bg-gray-400'
-        : 'bg-green-500';
-  const canRetry = isSent && status === 'failed' && onRetry && deviceId;
+  const canRetry = isSent && (status === 'failed' || status === 'expired') && onRetry && deviceId;
 
   return (
     <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-4 items-center gap-2`}>
-      {showDot && (
-        <button
-          type="button"
-          onClick={canRetry ? () => onRetry(message.id) : undefined}
-          disabled={!canRetry}
-          className={`shrink-0 w-2.5 h-2.5 rounded-full border border-white/30 ${dotColor} ${canRetry ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
-          title={status === 'failed' ? 'Retry' : status === 'pending' ? 'Pending' : 'Sent'}
-        />
-      )}
       <div
         className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-md ${
           isSent ? 'rounded-br-sm' : 'rounded-bl-sm'
@@ -44,6 +41,8 @@ export default function MessageBubble({ message, deviceId, onRetry }: MessageBub
         <p className="text-white break-words whitespace-pre-wrap">{message.content}</p>
         <div className={`text-xs mt-1 flex items-center gap-1.5 ${isSent ? 'text-white/70' : 'text-white/50'}`}>
           <span>{formatDateTime(message.createdAt)}</span>
+          {isSent && <span>{t(statusLabels[status])}</span>}
+          {canRetry && <button type="button" onClick={() => onRetry(message.id)} className="underline">{t('retrySend')}</button>}
           {!isSent && message.readAt && <span className="text-white/40">已读</span>}
         </div>
       </div>

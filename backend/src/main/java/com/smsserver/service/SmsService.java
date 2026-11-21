@@ -38,6 +38,7 @@ public class SmsService {
     private final SimChangeLogMapper simChangeLogMapper;
     private final DeviceService deviceService;
     private final RedisService redisService;
+    private final SmsDispatchService dispatchService;
 
     public List<String> getDeviceLineNumbers(Long deviceId, Long userId) {
         deviceService.getDevice(deviceId, userId);
@@ -209,10 +210,34 @@ public class SmsService {
     }
 
     @Transactional
-    public SmsMessage sendMessage(Long deviceId, String phone, String content, Long userId) {
-        Device device = deviceService.getDevice(deviceId, userId);
+    public SmsMessage sendMessage(Long deviceId, String phone, String content, String requestId, Long userId) {
+        Device device = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
+                .eq(Device::getId, deviceId)
+                .eq(Device::getUserId, userId)
+                .last("FOR UPDATE"));
+        if (device == null) throw new IllegalArgumentException("Device not found");
+        if (requestId != null) {
+            PendingSms existing = pendingSmsMapper.selectOne(new LambdaQueryWrapper<PendingSms>()
+                    .eq(PendingSms::getDeviceId, deviceId)
+                    .eq(PendingSms::getRequestId, requestId));
+            if (existing != null) {
+                if (!existing.getPhoneNumber().equals(phone) || !existing.getContent().equals(content)) {
+                    throw new IllegalArgumentException("Request ID belongs to a different message");
+                }
+                return smsMessageMapper.selectOne(new LambdaQueryWrapper<SmsMessage>()
+                        .eq(SmsMessage::getPendingSmsId, existing.getId()));
+            }
+        }
 
+        if (!Integer.valueOf(2).equals(device.getSmsProtocol()) || device.getCurrentSimId() == null) {
+            throw new IllegalArgumentException("Wait for compatible firmware to report its SIM before sending");
+        }
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         PendingSms pendingSms = new PendingSms();
+        pendingSms.setRequestId(requestId);
+        pendingSms.setAttemptCount(1);
+        pendingSms.setExpectedSim(device.getCurrentSimId());
+        pendingSms.setAttemptExpiresAt(now.plusHours(24));
         pendingSms.setDeviceId(deviceId);
         pendingSms.setPhoneNumber(phone);
         pendingSms.setContent(content);
@@ -229,9 +254,9 @@ public class SmsService {
         smsMessage.setPendingSmsId(pendingSms.getId());
         smsMessageMapper.insert(smsMessage);
 
-        redisService.pushPendingSmsTask(deviceId, pendingSms.getId());
+        redisService.trackSmsAfterCommit(pendingSms);
 
-        log.info("Created pending SMS {} and sms_message {} for device {} to {}", pendingSms.getId(), smsMessage.getId(), deviceId, phone);
+        log.info("Created pending SMS {} and sms_message {} for device {}", pendingSms.getId(), smsMessage.getId(), deviceId);
         return smsMessage;
     }
 
@@ -246,20 +271,34 @@ public class SmsService {
 
     @Transactional
     public SmsMessage retryMessage(Long deviceId, Long messageId, Long userId) {
-        deviceService.getDevice(deviceId, userId);
+        Device device = deviceService.getDevice(deviceId, userId);
         SmsMessage message = smsMessageMapper.selectById(messageId);
         if (message == null || !message.getDeviceId().equals(deviceId) || message.getPendingSmsId() == null) {
             throw new RuntimeException("Message not found or not retryable");
         }
-        PendingSms pending = pendingSmsMapper.selectById(message.getPendingSmsId());
+        PendingSms pending = pendingSmsMapper.selectOne(new LambdaQueryWrapper<PendingSms>()
+                .eq(PendingSms::getId, message.getPendingSmsId())
+                .eq(PendingSms::getDeviceId, deviceId)
+                .last("FOR UPDATE"));
         if (pending == null) {
             throw new RuntimeException("Pending task not found");
         }
-        pending.setStatus("pending");
-        pendingSmsMapper.updateById(pending);
+        if (!"failed".equals(pending.getStatus()) && !"expired".equals(pending.getStatus())) {
+            throw new IllegalArgumentException("Only failed or expired messages can be retried");
+        }
+        if (pending.getAttemptCount() >= SmsDispatchService.MAX_ATTEMPTS) {
+            throw new IllegalArgumentException("This message has reached the send attempt limit");
+        }
+        if (!Integer.valueOf(2).equals(device.getSmsProtocol()) || device.getCurrentSimId() == null
+                || !device.getCurrentSimId().equals(pending.getExpectedSim())) {
+            throw new IllegalArgumentException("The original SIM must be online to retry this message");
+        }
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        pending.setAttemptCount(pending.getAttemptCount() + 1);
+        pending.setAttemptOfferCount(0);
+        pending.setAttemptExpiresAt(now.plusHours(24));
+        dispatchService.transition(pending, "pending", now);
         message.setStatus("pending");
-        smsMessageMapper.updateById(message);
-        redisService.pushPendingSmsTask(deviceId, pending.getId());
         log.info("Retry message {} pending_sms {}", messageId, pending.getId());
         return message;
     }

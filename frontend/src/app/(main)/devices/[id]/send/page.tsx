@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ElMessage } from 'element-plus';
-import { smsApi } from '@/lib/api';
+import { deviceApi, identifySmsDraft, smsApi, type SmsDraft } from '@/lib/api';
 import { formatDateTime } from '@/lib/dateUtils';
 
 type SendLogItem = {
@@ -31,6 +31,8 @@ export default function DeviceSendPage() {
   const [sending, setSending] = useState(false);
   const [sendLogs, setSendLogs] = useState<SendLogItem[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [sendReady, setSendReady] = useState<boolean>();
+  const draft = useRef<SmsDraft | null>(null);
 
   const fetchSendLogs = useCallback(() => {
     smsApi.getSendLogs(deviceId, 20)
@@ -38,21 +40,31 @@ export default function DeviceSendPage() {
         const data = (res.data as { data?: SendLogItem[] })?.data;
         setSendLogs(Array.isArray(data) ? data : []);
       })
+      .catch(() => { /* Keep the last successful results when a refresh fails. */ })
       .finally(() => setLogsLoading(false));
   }, [deviceId]);
 
   useEffect(() => {
-    fetchSendLogs();
-  }, [fetchSendLogs]);
+    const refresh = () => {
+      fetchSendLogs();
+      deviceApi.get(deviceId).then(({ data }) => setSendReady(data.smsSendReady)).catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 10000);
+    return () => clearInterval(interval);
+  }, [deviceId, fetchSendLogs]);
 
   const handleSendSms = (e: React.FormEvent) => {
     e.preventDefault();
     const phone = sendPhone.trim();
     const content = sendContent.trim();
-    if (!phone || !content || sending) return;
+    if (!phone || !content || sending || sendReady !== true) return;
     setSending(true);
-    smsApi.sendMessage(deviceId, { phone, content })
+    const identified = identifySmsDraft(draft.current, deviceId, phone, content);
+    draft.current = identified;
+    smsApi.sendMessage(deviceId, identified)
       .then(() => {
+        draft.current = null;
         setSendPhone('');
         setSendContent('');
         ElMessage.success(t('sendQueuedSuccess'));
@@ -67,6 +79,10 @@ export default function DeviceSendPage() {
     sent: t('statusSent'),
     delivered: t('statusDelivered'),
     failed: t('statusFailed'),
+    dispatching: t('statusDispatching'),
+    submitted: t('statusSubmitted'),
+    unknown: t('statusUnknown'),
+    expired: t('statusExpired'),
   };
   const formatTime = (s: string | null) => s ? formatDateTime(s) : '—';
 
@@ -96,6 +112,7 @@ export default function DeviceSendPage() {
           }}
         >
           <form onSubmit={handleSendSms} className="space-y-4">
+            {sendReady === false && <p role="status" className="text-amber-200">{t('smsSendNotReady')}</p>}
             <div>
               <label className="block text-white/70 mb-2">{t('phone')}</label>
               <input
@@ -128,7 +145,7 @@ export default function DeviceSendPage() {
             </div>
             <button
               type="submit"
-              disabled={sending || !sendPhone.trim() || !sendContent.trim()}
+              disabled={sending || sendReady !== true || !sendPhone.trim() || !sendContent.trim()}
               className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
               style={{
                 backgroundColor: '#c2905e',

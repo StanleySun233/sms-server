@@ -14,6 +14,7 @@ public class DeviceResponse {
     private String status;
     private String lastHeartbeatAt;
     private String currentPhoneNumber;
+    private boolean smsSendReady;
     private String imei;
     private Integer signalStrength;
     private Double latitude;
@@ -30,6 +31,7 @@ public class DeviceResponse {
                 ? device.getLastHeartbeatAt().atZone(ZoneOffset.UTC).toInstant().toString()
                 : null);
         response.setCurrentPhoneNumber(device.getCurrentPhoneNumber());
+        response.setSmsSendReady(Integer.valueOf(2).equals(device.getSmsProtocol()) && device.getCurrentSimId() != null);
         response.setImei(device.getImei());
         response.setSignalStrength(device.getSignalStrength());
         response.setLatitude(device.getLatitude() != null ? device.getLatitude().doubleValue() : null);

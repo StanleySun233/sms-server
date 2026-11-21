@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { smsApi } from '@/lib/api';
+import { identifySmsDraft, smsApi, type SmsDraft } from '@/lib/api';
 import { SmsMessage, Conversation } from '@/lib/types';
 import MessageBubble from '@/components/MessageBubble';
 import ConversationList from '@/components/ConversationList';
@@ -34,6 +34,7 @@ export default function ConversationPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const unreadMessagesRef = useRef<Set<number>>(new Set());
   const messagesRef = useRef<SmsMessage[]>([]);
+  const sendDraft = useRef<SmsDraft | null>(null);
 
   const fetchConversations = async () => {
     const response = await smsApi.getConversations(deviceId, receiverPhone);
@@ -189,24 +190,33 @@ export default function ConversationPage() {
     const phone = selectedSender === '__new__' ? newConversationPhone.trim() : selectedSender;
     if (!phone || !newMessage.trim() || sending) return;
     setSending(true);
-    const res = await smsApi.sendMessage(deviceId, { phone, content: newMessage.trim() });
-    setNewMessage('');
-    setToast(t('sendSuccess'));
-    setTimeout(() => setToast(''), 2000);
-    if (selectedSender === '__new__') {
-      setSelectedSender(phone);
-      setNewConversationPhone('');
-      setShowNewRow(false);
-      fetchConversations();
-    } else {
-      const created = res.data?.data as SmsMessage | undefined;
-      if (created?.id) {
-        setMessages((prev) => [...prev, created]);
+    try {
+      const identified = identifySmsDraft(sendDraft.current, deviceId, phone, newMessage.trim());
+      sendDraft.current = identified;
+      const res = await smsApi.sendMessage(deviceId, identified);
+      sendDraft.current = null;
+      setNewMessage('');
+      setToast(t('sendSuccess'));
+      setTimeout(() => setToast(''), 2000);
+      if (selectedSender === '__new__') {
+        setSelectedSender(phone);
+        setNewConversationPhone('');
+        setShowNewRow(false);
+        void fetchConversations().catch(() => {});
       } else {
-        setTimeout(() => fetchMessages(false), 1000);
+        const created = res.data?.data as SmsMessage | undefined;
+        if (created?.id) {
+          setMessages((prev) => prev.some((message) => message.id === created.id) ? prev : [...prev, created]);
+        } else {
+          setTimeout(() => fetchMessages(false), 1000);
+        }
       }
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t('sendFailed'));
+      setTimeout(() => setToast(''), 3000);
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const handleSelectConversation = (phone: string) => {

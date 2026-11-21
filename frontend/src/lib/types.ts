@@ -83,7 +83,7 @@ export interface SmsMessage {
   phoneNumber: string;
   content: string;
   direction: 'sent' | 'received';
-  status: 'pending' | 'sent' | 'delivered' | 'failed';
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'dispatching' | 'submitted' | 'unknown' | 'expired';
   createdAt: string;
   updatedAt: string;
   readAt?: string;

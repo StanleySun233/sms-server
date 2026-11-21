@@ -1,21 +1,53 @@
 package com.smsserver.service;
 
 import com.smsserver.entity.PendingSms;
-import com.smsserver.mapper.PendingSmsMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
+import java.util.List;
+import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RedisService {
     private final RedisTemplate<String, String> redisTemplate;
-    private final PendingSmsMapper pendingSmsMapper;
+    private static final DefaultRedisScript<Long> RELEASE_LOCK = new DefaultRedisScript<>(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+            Long.class);
+
+    public record HeartbeatLease(String key, String owner, boolean busy) {
+    }
+
+    public HeartbeatLease acquireHeartbeatLease(String token) {
+        String key = "sms:heartbeat-lock:" + UUID.nameUUIDFromBytes(token.getBytes(StandardCharsets.UTF_8));
+        String owner = UUID.randomUUID().toString();
+        try {
+            boolean acquired = Boolean.TRUE.equals(redisTemplate.opsForValue()
+                    .setIfAbsent(key, owner, 15, TimeUnit.SECONDS));
+            return new HeartbeatLease(key, acquired ? owner : null, !acquired);
+        } catch (RuntimeException e) {
+            log.warn("Redis heartbeat lock unavailable, using the database row lock");
+            return new HeartbeatLease(key, null, false);
+        }
+    }
+
+    public void releaseHeartbeatLease(HeartbeatLease lease) {
+        if (lease.owner() == null) return;
+        try {
+            redisTemplate.execute(RELEASE_LOCK, List.of(lease.key()), lease.owner());
+        } catch (RuntimeException e) {
+            log.warn("Could not release heartbeat lock before expiry");
+        }
+    }
 
     /**
      * Store a value in Redis
@@ -44,37 +76,33 @@ public class RedisService {
         redisTemplate.delete(key);
     }
 
-    /**
-     * Push a pending SMS task to the device queue
-     * @param deviceId The device ID
-     * @param taskId The task ID
-     */
-    public void pushPendingSmsTask(Long deviceId, Long taskId) {
-        String key = "task:sms:" + deviceId;
-        redisTemplate.opsForList().rightPush(key, taskId.toString());
+    public void trackSmsAfterCommit(PendingSms task) {
+        String key = "sms:progress:" + task.getDeviceId() + ":" + task.getId();
+        String progress = task.getStatus() + "|" + task.getUpdatedAt() + "|"
+                + java.util.Objects.toString(task.getAttemptId(), "") + "|"
+                + java.util.Objects.toString(task.getAttemptExpiresAt(), "") + "|"
+                + task.getAttemptCount() + "|" + task.getAttemptOfferCount();
+        afterCommit(() -> set(key, progress, 604800));
     }
 
-    /**
-     * Pop pending SMS tasks from the device queue (max 10 at once)
-     * @param deviceId The device ID
-     * @return List of pending SMS tasks
-     */
-    public List<PendingSms> popPendingSmsTasks(Long deviceId) {
-        String key = "task:sms:" + deviceId;
-        List<PendingSms> tasks = new ArrayList<>();
+    public void refreshHeartbeatAfterCommit(Long deviceId, boolean invalidateUnreadCount) {
+        afterCommit(() -> {
+            if (invalidateUnreadCount) deleteDeviceUnreadCount(deviceId);
+            setDeviceStatus(deviceId, "online");
+        });
+    }
 
-        // Pop up to 10 tasks at once
-        for (int i = 0; i < 10; i++) {
-            String taskId = redisTemplate.opsForList().leftPop(key);
-            if (taskId == null) break;
-
-            PendingSms task = pendingSmsMapper.selectById(Long.parseLong(taskId));
-            if (task != null && "pending".equals(task.getStatus())) {
-                tasks.add(task);
+    private void afterCommit(Runnable operation) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    operation.run();
+                } catch (RuntimeException e) {
+                    log.warn("Could not refresh Redis cache ({})", e.getClass().getSimpleName());
+                }
             }
-        }
-
-        return tasks;
+        });
     }
 
     /**

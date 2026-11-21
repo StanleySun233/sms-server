@@ -68,10 +68,12 @@ function util_notify.add(msg, channels, id)
     end
 
     for _, channel in ipairs(channels) do
-        table.insert(msg_queue, { id = id, channel = channel, msg = msg, retry = 0 })
+        if channel ~= "webui" then
+            table.insert(msg_queue, { id = id, channel = channel, msg = msg, retry = 0 })
+        end
     end
     sys.publish("NEW_MSG")
-    log.debug("util_notify.add", "添加到消息队列, 当前队列长度:", #msg_queue, "消息内容:", msg:gsub("\r", "\\r"):gsub("\n", "\\n"))
+    log.debug("util_notify.add", "添加到消息队列, 当前队列长度:", #msg_queue)
 end
 
 --- 轮询消息队列, 发送成功则从队列中删除, 发送失败则等待下次
@@ -103,7 +105,7 @@ local function poll()
 
     -- 超过最大重发次数
     if item.retry > (config.NOTIFY_RETRY_MAX or 20) then
-        log.warn("util_notify.poll", "超过最大重发次数, 放弃重发", item.msg)
+        log.warn("util_notify.poll", "超过最大重发次数, 放弃重发", item.id)
         return
     end
 

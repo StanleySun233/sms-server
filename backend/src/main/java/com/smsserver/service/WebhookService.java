@@ -22,6 +22,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class WebhookService {
+    public static class InvalidDeviceTokenException extends RuntimeException {
+    }
+
     private final DeviceMapper deviceMapper;
     private final SmsMessageMapper smsMessageMapper;
     private final MissedCallMapper missedCallMapper;
@@ -29,20 +32,32 @@ public class WebhookService {
     private final SimChangeLogMapper simChangeLogMapper;
     private final WebhookLogMapper webhookLogMapper;
     private final RedisService redisService;
+    private final SmsDispatchService dispatchService;
 
     @Transactional
     public WebhookResponse processHeartbeat(String webhookToken, WebhookRequest request) {
         // 1. Find device by webhook token
-        Device device = deviceMapper.findByWebhookToken(webhookToken);
+        Device device = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
+                .eq(Device::getWebhookToken, webhookToken)
+                .last("FOR UPDATE"));
         if (device == null) {
-            throw new RuntimeException("Invalid webhook token");
+            throw new InvalidDeviceTokenException();
         }
 
         log.info("Processing heartbeat for device {} (user {})", device.getId(), device.getUserId());
 
         // 2. Update device heartbeat and info
         device.setLastHeartbeatAt(LocalDateTime.now(ZoneOffset.UTC));
+        String simId = request.getDeviceInfo() == null ? null : request.getDeviceInfo().getSimId();
+        boolean hasSim = simId != null && simId.matches("[0-9]{15,24}");
+        if (request.getDeviceInfo() != null || request.getSmsProtocol() != null) {
+            boolean hasSession = request.getDeviceSession() != null && request.getDeviceSession().matches("[a-z0-9-]{8,64}");
+            device.setSmsProtocol(Integer.valueOf(2).equals(request.getSmsProtocol()) && hasSim && hasSession ? 2 : 0);
+        }
         if (request.getDeviceInfo() != null) {
+            if (hasSim) {
+                device.setCurrentSimId(simId);
+            }
             device.setImei(request.getDeviceInfo().getImei());
             device.setSignalStrength(request.getDeviceInfo().getSignalStrength());
             if (request.getDeviceInfo().getLatitude() != null) {
@@ -60,10 +75,9 @@ public class WebhookService {
         deviceMapper.updateById(device);
 
         // 3. Save new messages
-        if (request.getNewMessages() != null && !request.getNewMessages().isEmpty()) {
+        boolean hasNewMessages = request.getNewMessages() != null && !request.getNewMessages().isEmpty();
+        if (hasNewMessages) {
             saveNewMessages(device.getId(), request.getNewMessages());
-            // Invalidate unread count cache
-            redisService.deleteDeviceUnreadCount(device.getId());
         }
 
         // 4. Save missed calls
@@ -71,46 +85,23 @@ public class WebhookService {
             saveMissedCalls(device.getId(), request.getMissedCalls());
         }
 
-        // 5. Fetch pending SMS tasks from Redis
-        List<PendingSms> pendingTasks = redisService.popPendingSmsTasks(device.getId());
-
-        // 6. Build response with commands (update DB first to avoid inconsistent state)
         WebhookResponse response = new WebhookResponse();
-        for (PendingSms task : pendingTasks) {
-            task.setStatus("sent");
-            task.setSentAt(LocalDateTime.now(ZoneOffset.UTC));
-            pendingSmsMapper.updateById(task);
-            LambdaQueryWrapper<SmsMessage> q = new LambdaQueryWrapper<>();
-            q.eq(SmsMessage::getPendingSmsId, task.getId());
-            SmsMessage smsRow = smsMessageMapper.selectOne(q);
-            if (smsRow != null) {
-                smsRow.setStatus("sent");
-                smsMessageMapper.updateById(smsRow);
-            }
-            response.getCommands().add(
-                WebhookResponse.Command.sendSms(
-                    task.getId(),
-                    task.getPhoneNumber(),
-                    task.getContent()
-                )
-            );
-        }
+        dispatchService.processHeartbeat(device, request, response);
 
-        // Update device status cache
-        redisService.setDeviceStatus(device.getId(), "online");
+        redisService.refreshHeartbeatAfterCommit(device.getId(), hasNewMessages);
 
         log.info("Heartbeat processed: {} new messages, {} missed calls, {} pending SMS",
                 request.getNewMessages() != null ? request.getNewMessages().size() : 0,
                 request.getMissedCalls() != null ? request.getMissedCalls().size() : 0,
-                pendingTasks.size());
+                response.getCommands().size());
 
         WebhookLog webhookLog = new WebhookLog();
         webhookLog.setDeviceId(device.getId());
-        webhookLog.setWebhookToken(webhookToken);
+
         webhookLog.setReceivedAt(LocalDateTime.now(ZoneOffset.UTC));
         webhookLog.setNewMessagesCount(request.getNewMessages() != null ? request.getNewMessages().size() : 0);
         webhookLog.setMissedCallsCount(request.getMissedCalls() != null ? request.getMissedCalls().size() : 0);
-        webhookLog.setCommandsCount(pendingTasks.size());
+        webhookLog.setCommandsCount(response.getCommands().size());
         if (request.getDeviceInfo() != null) {
             if (request.getDeviceInfo().getLatitude() != null) {
                 webhookLog.setLatitude(BigDecimal.valueOf(request.getDeviceInfo().getLatitude()));
@@ -128,9 +119,15 @@ public class WebhookService {
         Device device = deviceMapper.selectById(deviceId);
         String receiverPhone = device != null ? device.getCurrentPhoneNumber() : null;
         for (WebhookRequest.NewMessage msg : messages) {
+            if (msg.getEventId() != null && smsMessageMapper.exists(new LambdaQueryWrapper<SmsMessage>()
+                    .eq(SmsMessage::getDeviceId, deviceId)
+                    .eq(SmsMessage::getInboundEventId, msg.getEventId()))) continue;
             SmsMessage smsMessage = new SmsMessage();
+            smsMessage.setInboundEventId(msg.getEventId());
             smsMessage.setDeviceId(deviceId);
-            smsMessage.setReceiverPhone(receiverPhone);
+            String eventLine = msg.getReceiverPhone();
+            smsMessage.setReceiverPhone(eventLine != null && eventLine.matches("\\+?[0-9]{5,19}")
+                    ? eventLine : receiverPhone);
             smsMessage.setPhoneNumber(msg.getPhone());
             smsMessage.setContent(msg.getContent());
             smsMessage.setDirection("received");
@@ -149,7 +146,11 @@ public class WebhookService {
 
     private void saveMissedCalls(Long deviceId, List<WebhookRequest.MissedCall> calls) {
         for (WebhookRequest.MissedCall call : calls) {
+            if (call.getEventId() != null && missedCallMapper.exists(new LambdaQueryWrapper<MissedCall>()
+                    .eq(MissedCall::getDeviceId, deviceId)
+                    .eq(MissedCall::getInboundEventId, call.getEventId()))) continue;
             MissedCall missedCall = new MissedCall();
+            missedCall.setInboundEventId(call.getEventId());
             missedCall.setDeviceId(deviceId);
             missedCall.setPhoneNumber(call.getPhone());
 

@@ -105,7 +105,7 @@ end
 sms.setNewSmsCb(function(sender_number, sms_content, m)
     local time = string.format("%d/%02d/%02d %02d:%02d:%02d", m.year + 2000, m.mon, m.day, m.hour, m.min, m.sec)
     local iso_ts = string.format("%04d-%02d-%02dT%02d:%02d:%02d", m.year + 2000, m.mon, m.day, m.hour, m.min, m.sec)
-    log.info("smsCallback", time, sender_number, sms_content)
+    log.info("smsCallback", "received", time)
     util_webhook.addNewMessage(sender_number, sms_content, iso_ts)
     util_notify.add({ sms_content, "", "发件号码: " .. sender_number, "发件时间: " .. time, "#SMS" })
 end)
@@ -149,14 +149,13 @@ sys.taskInit(function()
     local webhook_url_ok = type(config.WEBUI_WEBHOOK_URL) == "string" and config.WEBUI_WEBHOOK_URL ~= ""
     local legacy_webhook_ok = type(config.SMS_SERVER_URL) == "string" and config.SMS_SERVER_URL ~= "" and type(config.WEBHOOK_TOKEN) == "string" and config.WEBHOOK_TOKEN ~= ""
     if webui_enabled and (webhook_url_ok or legacy_webhook_ok) and type(config.HEARTBEAT_INTERVAL) == "number" and config.HEARTBEAT_INTERVAL >= 60000 then
+        sys.taskInit(util_webhook.doHeartbeat)
         sys.timerLoopStart(function() sys.taskInit(util_webhook.doHeartbeat) end, config.HEARTBEAT_INTERVAL)
     end
 
-    -- 新增：每隔2小时重启设备
-    sys.timerLoopStart(function()
-        log.info("main", "设备即将重启")
-        rtos.restart()  -- 重启设备
-    end, 2 * 60 * 60 * 1000)  -- 2小时 = 7200000毫秒
+    if type(config.RESTART_INTERVAL) == "number" and config.RESTART_INTERVAL >= 3600000 then
+        sys.timerLoopStart(rtos.restart, config.RESTART_INTERVAL)
+    end
 
     -- 电源键短按发送测试通知
     sys.subscribe("POWERKEY_SHORT_PRESS", function() util_notify.add("#ALIVE") end)

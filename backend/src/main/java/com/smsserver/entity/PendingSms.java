@@ -1,6 +1,7 @@
 package com.smsserver.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -13,7 +14,16 @@ public class PendingSms {
     private Long deviceId;
     private String phoneNumber;
     private String content;
-    private String status; // "pending", "sent", "delivered", "failed"
+    private String status;
+    private String attemptId;
+    @JsonIgnore
+    private String attemptOwner;
+    private Integer attemptOfferCount;
+    private Integer attemptCount;
+    private String requestId;
+    private LocalDateTime attemptExpiresAt;
+    @JsonIgnore
+    private String expectedSim;
     private LocalDateTime sentAt;
     private LocalDateTime deliveredAt;
 

@@ -98,7 +98,7 @@ public class SmsController {
             @Valid @RequestBody SendMessageRequest request) {
         try {
             Long userId = getCurrentUserId();
-            SmsMessage message = smsService.sendMessage(id, request.getPhone(), request.getContent(), userId);
+            SmsMessage message = smsService.sendMessage(id, request.getPhone(), request.getContent(), request.getRequestId(), userId);
             return ResponseEntity.ok(ApiResponse.success(message));
         } catch (Exception e) {
             log.error("Failed to send message", e);

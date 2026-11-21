@@ -314,7 +314,7 @@ return {
         end
         local header = { ["Content-Type"] = "application/json; charset=utf-8" }
         local body = { content = msg }
-        log.info("util_notify", "POST", config.WEBUI_WEBHOOK_URL, "webui")
+        log.info("util_notify", "POST", "webui")
         return util_http.fetch(nil, "POST", config.WEBUI_WEBHOOK_URL, header, json.encode(body))
     end,
 

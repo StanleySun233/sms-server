@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("missed_call")
 public class MissedCall {
+    private String inboundEventId;
     @TableId(type = IdType.AUTO)
     private Long id;
 

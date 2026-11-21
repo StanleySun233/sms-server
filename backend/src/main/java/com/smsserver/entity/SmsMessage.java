@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("sms_message")
 public class SmsMessage {
+    private String inboundEventId;
     @TableId(type = IdType.AUTO)
     private Long id;
 

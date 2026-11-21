@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import com.smsserver.service.RedisService;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 @Component
+@Profile("!test")
 public class StartupHealthCheck {
 
     private static final Logger log = LoggerFactory.getLogger(StartupHealthCheck.class);

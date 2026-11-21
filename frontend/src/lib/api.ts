@@ -55,6 +55,15 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
+export type SmsDraft = { deviceId: number; phone: string; content: string; requestId: string };
+
+export function identifySmsDraft(previous: SmsDraft | null, deviceId: number, phone: string, content: string): SmsDraft {
+  if (previous?.deviceId === deviceId && previous.phone === phone && previous.content === content) {
+    return previous;
+  }
+  return { deviceId, phone, content, requestId: crypto.randomUUID() };
+}
+
 // Auth API functions
 export const authApi = {
   register: (data: { username: string; password: string; email: string }) =>
@@ -107,7 +116,7 @@ export const smsApi = {
       params: { phone, page, size, ...(receiverPhone != null ? { receiverPhone } : {}) }
     }),
 
-  sendMessage: (deviceId: number, data: { phone: string; content: string }) =>
+  sendMessage: (deviceId: number, data: { phone: string; content: string; requestId: string }) =>
     apiClient.post(`/devices/${deviceId}/messages`, data),
 
   retryMessage: (deviceId: number, messageId: number) =>

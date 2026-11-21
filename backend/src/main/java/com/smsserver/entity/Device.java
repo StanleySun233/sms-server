@@ -19,6 +19,8 @@ public class Device {
     private String webhookToken;
 
     private String currentPhoneNumber;
+    private String currentSimId;
+    private Integer smsProtocol;
 
     private String imei;
 

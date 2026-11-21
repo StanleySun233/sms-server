@@ -110,6 +110,8 @@ return {
     --
     -- 心跳上报间隔, 单位毫秒, 最小 60000 (60 秒), 设为 0 关闭
     HEARTBEAT_INTERVAL = 60000,
+    -- 定时重启间隔（毫秒），默认为 0；启用时至少一小时。
+    RESTART_INTERVAL = 0,
     --
     -- 60s 心跳完整 Webhook 地址, 如 https://your-server.com/webhook/YOUR_16CHAR_TOKEN, 留空则不启用 WebUI 心跳
     WEBUI_WEBHOOK_URL = "https://your-domain.com/api/webhook/YOUR_16CHAR_TOKEN",

@@ -181,6 +181,9 @@ frontend/.turbo
 database/data/
 *.sql.backup
 
+# Local device configuration contains a provisioning token
+/device_onboard/
+
 # Docker
 docker/mysql/data/
 docker/redis/data/
